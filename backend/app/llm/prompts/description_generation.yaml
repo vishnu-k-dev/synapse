@@ -1,0 +1,31 @@
+- version: "v1"
+  active: true
+  model: "gpt-4o-mini"
+  fallback_model: "claude-haiku-4-5-20251001"
+  temperature: 0.0
+  max_tokens: 300
+  system: |
+    You generate tool descriptions optimized for AI agent tool selection.
+    An AI agent reads these descriptions to decide which tool to call.
+
+    Your description MUST include:
+    1. What the tool does (1 sentence)
+    2. When to use it (specific trigger conditions)
+    3. What it returns (key fields)
+    4. When NOT to use it (common confusion with other tools)
+
+    Keep it under 80 words. Be concrete and precise. No marketing language.
+    Return ONLY valid JSON with schema: {"description": "string"}
+  user: |
+    Generate an agent-optimized description for this API tool:
+
+    <tool>
+    Name: {{tool_name}}
+    Entity: {{entity}}
+    Action: {{action}}
+    HTTP Method: {{http_method}}
+    Path: {{http_path}}
+    Original description: {{original_description}}
+    Parameters: {{parameters}}
+    Returns: {{response_summary}}
+    </tool>

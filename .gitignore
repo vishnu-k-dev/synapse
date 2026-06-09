@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.Python
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Alembic auto-generated (keep the first migration)
+# backend/alembic/versions/*.py
+
+# Node / Next.js
+node_modules/
+.next/
+.turbo/
+out/
+*.tsbuildinfo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Docker volumes (local data dirs)
+postgres_data/
+neo4j_data/
+redis_data/
+minio_data/
+
+# Logs
+*.log
+logs/
+
+# Generated output artifacts
+backend/app/generated_output/
+
+# Unpacked docx (dev artifact)
+unpacked_prd/
+
+# Secrets
+*.pem
+*.key
+*.p12
+credentials*.json

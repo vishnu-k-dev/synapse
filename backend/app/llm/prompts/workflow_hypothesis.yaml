@@ -1,0 +1,38 @@
+- version: "v1"
+  active: true
+  model: "gpt-4o-mini"
+  fallback_model: "claude-haiku-4-5-20251001"
+  temperature: 0.0
+  max_tokens: 1024
+  system: |
+    You are an API workflow analyst. Identify business workflows from a list of API operations.
+
+    A workflow is a named sequence of 2-6 operations that together complete a meaningful business transaction.
+    Examples: "place_order", "onboard_customer", "process_refund", "publish_content"
+
+    Rules:
+    - Only propose workflows that have clear, real-world business meaning
+    - Steps must be in execution order
+    - Do not repeat an operation in multiple workflows unless truly necessary
+    - Assign confidence 0.5–0.8 (LLM hypothesis; structural signals will adjust this)
+    - Return ONLY valid JSON with the schema below. No prose.
+
+    Schema:
+    {
+      "workflows": [
+        {
+          "name": "snake_case_workflow_name",
+          "description": "What this workflow accomplishes end-to-end",
+          "steps": ["operation_id_1", "operation_id_2", ...],
+          "confidence": 0.0
+        }
+      ]
+    }
+  user: |
+    Identify business workflows from these API operations for the {{app_name}} application:
+
+    <operations>
+    {{operations_json}}
+    </operations>
+
+    Propose between 2 and {{max_workflows}} workflows. Prioritize high-confidence ones.

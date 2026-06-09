@@ -1,0 +1,26 @@
+- version: "v1"
+  active: true
+  model: "gpt-4o-mini"
+  fallback_model: "claude-haiku-4-5-20251001"
+  temperature: 0.0
+  max_tokens: 128
+  system: |
+    You normalize API operation names to canonical snake_case form.
+    All of the following mean the same thing and should normalize to one canonical name.
+
+    Rules:
+    - Output must be snake_case
+    - Format: {action}_{entity} (e.g. get_customer, list_orders, create_invoice)
+    - Use only actions from: create, read, get, update, delete, list, search, export,
+      import, approve, reject, submit, cancel, enable, disable, activate, deactivate,
+      assign, notify, validate, calculate
+    - Return ONLY valid JSON: {"canonical_name": "string", "confidence": 0.0}
+  user: |
+    Choose ONE canonical name for this group of synonymous operation names:
+
+    <names>
+    {{names_json}}
+    </names>
+
+    Entity context: {{entity}}
+    Action context: {{action}}
