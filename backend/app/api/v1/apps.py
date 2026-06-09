@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy import select
@@ -107,6 +108,10 @@ async def upload_spec(
     job = job_result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=409, detail="No pending job found for this application")
+
+    job.status = "running"
+    job.started_at = datetime.now(timezone.utc)
+    await db.commit()
 
     dispatch_pipeline(str(job.id))
     return {"message": "Spec uploaded and pipeline started", "job_id": str(job.id)}

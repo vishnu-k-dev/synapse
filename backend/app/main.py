@@ -55,3 +55,13 @@ app.include_router(synthesis.router, prefix="/api/v1")
 @app.get("/health")
 async def health() -> dict:
     return {"status": "ok", "version": "0.1.0"}
+
+
+@app.get("/readiness")
+async def readiness() -> dict:
+    from sqlalchemy import text
+    from app.db.engine import get_session_factory
+    factory = get_session_factory()
+    async with factory() as session:
+        await session.execute(text("SELECT 1"))
+    return {"status": "ready"}

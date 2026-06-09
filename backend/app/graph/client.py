@@ -68,13 +68,13 @@ class Neo4jClient:
         cypher: str,
         parameters: dict[str, Any] | None = None,
     ) -> list[dict[str, Any]]:
+        _params = parameters or {}
         try:
             async with self.session() as session:
-                result = await session.execute_write(
-                    lambda tx: tx.run(cypher, parameters or {})
-                )
-                records = await result.data()
-                return records
+                async def _tx(tx: Any) -> list[dict[str, Any]]:
+                    result = await tx.run(cypher, _params)
+                    return await result.data()
+                return await session.execute_write(_tx)
         except Exception as exc:
             raise GraphError(f"Cypher write failed: {exc}") from exc
 
@@ -84,11 +84,12 @@ class Neo4jClient:
         parameters: dict[str, Any] | None = None,
     ) -> None:
         """Fire-and-forget write — does not return records."""
+        _params = parameters or {}
         try:
             async with self.session() as session:
-                await session.execute_write(
-                    lambda tx: tx.run(cypher, parameters or {})
-                )
+                async def _tx(tx: Any) -> None:
+                    await tx.run(cypher, _params)
+                await session.execute_write(_tx)
         except Exception as exc:
             raise GraphError(f"Cypher write failed: {exc}") from exc
 
@@ -108,17 +109,18 @@ class Neo4jClient:
             raise GraphError(f"Batch write failed: {exc}") from exc
 
     async def ensure_indexes(self) -> None:
-        """Create vector + constraint indexes — idempotent."""
+        """Create vector + constraint indexes — idempotent.
+
+        Schema operations (CREATE CONSTRAINT / CREATE INDEX) must run in
+        auto-commit sessions, not inside explicit write transactions.
+        """
         statements = [
-            # Uniqueness constraints
             "CREATE CONSTRAINT entity_id IF NOT EXISTS FOR (e:Entity) REQUIRE e.id IS UNIQUE",
             "CREATE CONSTRAINT operation_id IF NOT EXISTS FOR (o:Operation) REQUIRE o.id IS UNIQUE",
             "CREATE CONSTRAINT tool_id IF NOT EXISTS FOR (t:Tool) REQUIRE t.id IS UNIQUE",
             "CREATE CONSTRAINT workflow_id IF NOT EXISTS FOR (w:Workflow) REQUIRE w.id IS UNIQUE",
-            # Text lookup indexes
             "CREATE INDEX entity_name IF NOT EXISTS FOR (e:Entity) ON (e.app_id, e.name)",
             "CREATE INDEX operation_app IF NOT EXISTS FOR (o:Operation) ON (o.app_id)",
-            # Vector index for embedding similarity search
             """
             CREATE VECTOR INDEX operation_embeddings IF NOT EXISTS
             FOR (o:Operation) ON o.embedding
@@ -130,10 +132,13 @@ class Neo4jClient:
             }
             """,
         ]
+        driver = get_driver()
         for stmt in statements:
             try:
-                await self.run_write_tx(stmt)
-            except GraphError as exc:
+                # Auto-commit session — required for DDL in Neo4j
+                async with driver.session(database="neo4j") as session:
+                    await session.run(stmt)
+            except Exception as exc:
                 logger.warning("index_create_warning", error=str(exc))
 
 

@@ -114,23 +114,5 @@ def dispatch_pipeline(job_id: str, resume_from: str | None = None) -> str:
     pipeline = chain(*tasks)
     result = pipeline.apply_async()
 
-    _run(_mark_job_running(job_id))
     logger.info("pipeline_dispatched", job_id=job_id, task_id=result.id)
     return result.id
-
-
-async def _mark_job_running(job_id: str) -> None:
-    from sqlalchemy import select
-    from app.db.engine import get_session_factory
-    from app.db.models import Job
-
-    factory = get_session_factory()
-    async with factory() as session:
-        result = await session.execute(
-            select(Job).where(Job.id == uuid.UUID(job_id))
-        )
-        job = result.scalar_one_or_none()
-        if job:
-            job.status = "running"
-            job.started_at = datetime.now(timezone.utc)
-            await session.commit()

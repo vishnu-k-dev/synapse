@@ -32,7 +32,8 @@ def _compute_cost(model: str, input_tokens: int, output_tokens: int) -> float:
     return (input_tokens * rates["input"] + output_tokens * rates["output"]) / 1000.0
 
 
-class StructuredResponse(BaseModel, extra="allow"):
+class StructuredResponse(BaseModel):
+    model_config = {"extra": "allow"}
     model_used: str
     prompt_key: str
     prompt_version: str
@@ -272,7 +273,7 @@ class LLMClient:
             async with factory() as session:
                 log = LLMCallLog(
                     id=_uuid.uuid4(),
-                    job_id=uuid.UUID(job_id) if job_id else None,
+                    job_id=_uuid.UUID(job_id) if job_id else None,
                     stage=stage,
                     prompt_key=prompt_key,
                     prompt_version=prompt_version,

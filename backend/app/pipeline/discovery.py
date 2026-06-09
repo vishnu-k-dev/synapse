@@ -10,7 +10,6 @@ import httpx
 import jsonref
 import yaml
 from openapi_spec_validator import validate
-from openapi_spec_validator.readers import read_from_filename
 from sqlalchemy import select
 
 from app.core.logging import get_logger
@@ -239,35 +238,34 @@ class DiscoveryEngine(BaseStage):
         self._postman = PostmanParser()
 
     async def execute(self, job_id: str) -> dict[str, Any]:
+        from app.db.models import Application
+
         factory = get_session_factory()
+
+        # Load job to get app_id
         async with factory() as session:
-            from sqlalchemy import select
             result = await session.execute(
                 select(Job).where(Job.id == uuid.UUID(job_id))
             )
             job = result.scalar_one_or_none()
             if not job:
                 raise StageError(self.stage_name, f"Job {job_id} not found")
-
             app_id = str(job.app_id)
 
-        # Fetch spec from MinIO
-        minio = get_minio_client()
-        from app.db.engine import get_session_factory as gsf
-        async with get_session_factory()() as session:
-            from sqlalchemy import select
-            from app.db.models import Application
+        # Load application to get spec object key
+        async with factory() as session:
             result = await session.execute(
                 select(Application).where(Application.id == uuid.UUID(app_id))
             )
             app = result.scalar_one_or_none()
             if not app or not app.spec_object_key:
                 raise StageError(self.stage_name, f"No spec object key for app {app_id}")
-
-            spec_content = await minio.get_object(
-                bucket=minio.bucket_specs, key=app.spec_object_key
-            )
+            spec_object_key = app.spec_object_key
             source_format = app.source_format or "openapi3"
+
+        # Fetch spec content from MinIO
+        minio = get_minio_client()
+        spec_content = await minio.get_object(bucket=minio.bucket_specs, key=spec_object_key)
 
         if source_format == "postman21":
             model = self._postman.parse_text(spec_content, app_id)
@@ -275,7 +273,7 @@ class DiscoveryEngine(BaseStage):
             model = self._openapi.parse_text(spec_content, app_id)
 
         # Persist raw model to job
-        async with get_session_factory()() as session:
+        async with factory() as session:
             result = await session.execute(
                 select(Job).where(Job.id == uuid.UUID(job_id))
             )

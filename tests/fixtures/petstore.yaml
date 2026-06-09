@@ -1,0 +1,396 @@
+openapi: "3.0.0"
+info:
+  title: Petstore API
+  version: "1.0.0"
+  description: A sample API for testing SYNAPSE pipeline
+
+servers:
+  - url: https://petstore.example.com/v2
+
+paths:
+  /pets:
+    get:
+      operationId: listPets
+      summary: List all pets
+      tags: [pets]
+      parameters:
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer }
+        - name: status
+          in: query
+          required: false
+          schema: { type: string, enum: [available, pending, sold] }
+      responses:
+        "200":
+          description: A list of pets
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Pet" }
+    post:
+      operationId: createPet
+      summary: Create a pet
+      tags: [pets]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewPet" }
+      responses:
+        "201":
+          description: Pet created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Pet" }
+
+  /pets/{petId}:
+    get:
+      operationId: getPetById
+      summary: Get a specific pet by ID
+      tags: [pets]
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Expected response to a valid request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Pet" }
+    put:
+      operationId: updatePet
+      summary: Update a pet
+      tags: [pets]
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewPet" }
+      responses:
+        "200":
+          description: Pet updated
+    delete:
+      operationId: deletePet
+      summary: Delete a pet
+      tags: [pets]
+      parameters:
+        - name: petId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Pet deleted
+
+  /owners:
+    get:
+      operationId: listOwners
+      summary: List all owners
+      tags: [owners]
+      responses:
+        "200":
+          description: List of owners
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Owner" }
+    post:
+      operationId: createOwner
+      summary: Register a new owner
+      tags: [owners]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewOwner" }
+      responses:
+        "201":
+          description: Owner created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Owner" }
+
+  /owners/{ownerId}:
+    get:
+      operationId: getOwner
+      summary: Get owner by ID
+      tags: [owners]
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Owner" }
+    put:
+      operationId: updateOwner
+      summary: Update owner details
+      tags: [owners]
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewOwner" }
+      responses:
+        "200":
+          description: Owner updated
+    delete:
+      operationId: deleteOwner
+      summary: Delete an owner
+      tags: [owners]
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Owner deleted
+
+  /owners/{ownerId}/pets:
+    get:
+      operationId: listOwnerPets
+      summary: List pets owned by a specific owner
+      tags: [owners, pets]
+      parameters:
+        - name: ownerId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Pet" }
+
+  /appointments:
+    get:
+      operationId: listAppointments
+      summary: List all appointments
+      tags: [appointments]
+      parameters:
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+        - name: vetId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Appointment" }
+    post:
+      operationId: createAppointment
+      summary: Book an appointment
+      tags: [appointments]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewAppointment" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+
+  /appointments/{appointmentId}:
+    get:
+      operationId: getAppointment
+      summary: Get appointment details
+      tags: [appointments]
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Appointment" }
+    delete:
+      operationId: cancelAppointment
+      summary: Cancel an appointment
+      tags: [appointments]
+      parameters:
+        - name: appointmentId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "204":
+          description: Appointment cancelled
+
+  /vets:
+    get:
+      operationId: listVets
+      summary: List all veterinarians
+      tags: [vets]
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/Vet" }
+
+  /vets/{vetId}:
+    get:
+      operationId: getVet
+      summary: Get vet by ID
+      tags: [vets]
+      parameters:
+        - name: vetId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Vet" }
+
+  /medical-records:
+    post:
+      operationId: createMedicalRecord
+      summary: Create a medical record for a pet
+      tags: [medical-records]
+      requestBody:
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/NewMedicalRecord" }
+      responses:
+        "201":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MedicalRecord" }
+
+  /medical-records/{recordId}:
+    get:
+      operationId: getMedicalRecord
+      summary: Get a specific medical record
+      tags: [medical-records]
+      parameters:
+        - name: recordId
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/MedicalRecord" }
+
+components:
+  schemas:
+    Pet:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        species: { type: string }
+        breed: { type: string }
+        age: { type: integer }
+        owner_id: { type: string }
+        status: { type: string, enum: [available, pending, sold] }
+
+    NewPet:
+      type: object
+      required: [name, species]
+      properties:
+        name: { type: string }
+        species: { type: string }
+        breed: { type: string }
+        age: { type: integer }
+        owner_id: { type: string }
+
+    Owner:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+
+    NewOwner:
+      type: object
+      required: [name, email]
+      properties:
+        name: { type: string }
+        email: { type: string }
+        phone: { type: string }
+
+    Vet:
+      type: object
+      properties:
+        id: { type: string }
+        name: { type: string }
+        specialization: { type: string }
+        available: { type: boolean }
+
+    Appointment:
+      type: object
+      properties:
+        id: { type: string }
+        pet_id: { type: string }
+        vet_id: { type: string }
+        owner_id: { type: string }
+        date: { type: string, format: date }
+        time: { type: string }
+        reason: { type: string }
+        status: { type: string }
+
+    NewAppointment:
+      type: object
+      required: [pet_id, vet_id, date]
+      properties:
+        pet_id: { type: string }
+        vet_id: { type: string }
+        owner_id: { type: string }
+        date: { type: string, format: date }
+        time: { type: string }
+        reason: { type: string }
+
+    MedicalRecord:
+      type: object
+      properties:
+        id: { type: string }
+        pet_id: { type: string }
+        vet_id: { type: string }
+        appointment_id: { type: string }
+        diagnosis: { type: string }
+        treatment: { type: string }
+        notes: { type: string }
+        created_at: { type: string, format: date-time }
+
+    NewMedicalRecord:
+      type: object
+      required: [pet_id, vet_id, diagnosis]
+      properties:
+        pet_id: { type: string }
+        vet_id: { type: string }
+        appointment_id: { type: string }
+        diagnosis: { type: string }
+        treatment: { type: string }
+        notes: { type: string }

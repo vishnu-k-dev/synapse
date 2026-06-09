@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -53,6 +54,8 @@ async def trigger_synthesis(
         status="pending",
         pipeline_config=config,
     )
+    new_job.status = "running"
+    new_job.started_at = datetime.now(timezone.utc)
     db.add(new_job)
     await db.commit()
 

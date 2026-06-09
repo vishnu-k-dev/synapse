@@ -59,8 +59,10 @@ class GraphQueries:
                 is_noise:        false
             })
             WITH o
-            MATCH (e:Entity {app_id: $app_id, name: $entity})
-            CREATE (o)-[:OPERATES_ON]->(e)
+            OPTIONAL MATCH (e:Entity {app_id: $app_id, name: $entity})
+            FOREACH (_ IN CASE WHEN e IS NOT NULL THEN [1] ELSE [] END |
+                CREATE (o)-[:OPERATES_ON]->(e)
+            )
             """,
             props,
         )
@@ -234,14 +236,19 @@ class GraphQueries:
     async def get_graph_stats(self, app_id: str) -> dict[str, int]:
         results = await self._db.run_query(
             """
-            MATCH (e:Entity {app_id: $app_id}) WITH count(e) AS entities
-            MATCH (o:Operation {app_id: $app_id}) WITH entities, count(o) AS operations
-            OPTIONAL MATCH (t:Tool {app_id: $app_id}) WITH entities, operations, count(t) AS tools
-            OPTIONAL MATCH (w:Workflow {app_id: $app_id}) WITH entities, operations, tools, count(w) AS workflows
-            RETURN entities, operations, tools, workflows
+            RETURN
+              size([(e:Entity {app_id: $app_id}) | e])     AS entities,
+              size([(o:Operation {app_id: $app_id}) | o])   AS operations,
+              size([(t:Tool {app_id: $app_id}) | t])        AS tools,
+              size([(w:Workflow {app_id: $app_id}) | w])    AS workflows
             """,
             {"app_id": app_id},
         )
         if results:
-            return dict(results[0])
-        return {"entities": 0, "operations": 0, "tools": 0, "workflows": 0}
+            return {
+                "entity_count": results[0].get("entities", 0),
+                "operation_count": results[0].get("operations", 0),
+                "tool_count": results[0].get("tools", 0),
+                "workflow_count": results[0].get("workflows", 0),
+            }
+        return {"entity_count": 0, "operation_count": 0, "tool_count": 0, "workflow_count": 0}

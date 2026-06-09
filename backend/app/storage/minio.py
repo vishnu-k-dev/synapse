@@ -42,8 +42,10 @@ class MinioClient:
         data: bytes,
         content_type: str = "application/octet-stream",
     ) -> None:
+        import asyncio
         try:
-            self._client.put_object(
+            await asyncio.to_thread(
+                self._client.put_object,
                 bucket_name=bucket,
                 object_name=key,
                 data=io.BytesIO(data),
@@ -54,19 +56,24 @@ class MinioClient:
             raise StorageError(f"Failed to upload {key} to {bucket}: {exc}") from exc
 
     async def get_object(self, bucket: str, key: str) -> str:
+        import asyncio
         try:
-            response = self._client.get_object(bucket_name=bucket, object_name=key)
-            content = response.read().decode("utf-8")
-            response.close()
-            response.release_conn()
-            return content
+            def _get() -> str:
+                response = self._client.get_object(bucket_name=bucket, object_name=key)
+                content = response.read().decode("utf-8")
+                response.close()
+                response.release_conn()
+                return content
+            return await asyncio.to_thread(_get)
         except S3Error as exc:
             raise StorageError(f"Failed to get {key} from {bucket}: {exc}") from exc
 
     async def get_presigned_url(self, bucket: str, key: str, expires_seconds: int = 3600) -> str:
         from datetime import timedelta
+        import asyncio
         try:
-            return self._client.presigned_get_object(
+            return await asyncio.to_thread(
+                self._client.presigned_get_object,
                 bucket_name=bucket,
                 object_name=key,
                 expires=timedelta(seconds=expires_seconds),
@@ -75,8 +82,9 @@ class MinioClient:
             raise StorageError(f"Failed to generate presigned URL for {key}: {exc}") from exc
 
     async def object_exists(self, bucket: str, key: str) -> bool:
+        import asyncio
         try:
-            self._client.stat_object(bucket, key)
+            await asyncio.to_thread(self._client.stat_object, bucket, key)
             return True
         except S3Error:
             return False
