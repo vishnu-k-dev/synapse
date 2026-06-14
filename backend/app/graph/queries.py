@@ -53,6 +53,7 @@ class GraphQueries:
                 description:     $description,
                 param_schema:    $param_schema,
                 response_schema: $response_schema,
+                routing:         $routing,
                 confidence:      $confidence,
                 cluster_id:      -1,
                 is_compressed:   false,
@@ -160,7 +161,16 @@ class GraphQueries:
             """
             MATCH (t:Tool {app_id: $app_id})
             OPTIONAL MATCH (o:Operation)-[:COMPRESSED_INTO]->(t)
-            RETURN t, collect(o.id) AS operation_ids
+            RETURN t,
+                   collect(o.id) AS operation_ids,
+                   collect({
+                       id:             o.id,
+                       method:         o.http_method,
+                       path:           o.http_path,
+                       routing:        o.routing,
+                       action:         o.action,
+                       canonical_name: o.canonical_name
+                   }) AS operations
             ORDER BY t.name
             """,
             {"app_id": app_id},

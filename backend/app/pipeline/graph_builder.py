@@ -135,5 +135,44 @@ class CapabilityGraphBuilder(BaseStage):
                 {p.name: p.schema_ for p in endpoint.parameters if p.schema_}
             ),
             "response_schema": json.dumps(endpoint.response_schema or {}),
+            "routing": json.dumps(self._build_routing(endpoint)),
             "confidence": endpoint.extraction_confidence,
+        }
+
+    def _build_routing(self, endpoint: AnnotatedEndpoint) -> dict[str, Any]:
+        """Capture everything needed to make the real HTTP call: method, path,
+        and parameters split by location (path / query / body). The synthesizer
+        uses this to render a working request instead of a placeholder GET /."""
+        path_params: list[dict[str, Any]] = []
+        query_params: list[dict[str, Any]] = []
+        for p in endpoint.parameters:
+            location = (p.location or "query").lower()
+            schema = p.schema_ if isinstance(p.schema_, dict) else {"type": "string"}
+            entry = {"name": p.name, "schema": schema, "required": bool(p.required)}
+            if location == "path":
+                entry["required"] = True
+                path_params.append(entry)
+            elif location == "query":
+                query_params.append(entry)
+            # header/cookie params are intentionally not exposed as tool args
+
+        body_params: list[dict[str, Any]] = []
+        body = endpoint.request_schema if isinstance(endpoint.request_schema, dict) else {}
+        props = body.get("properties") if isinstance(body, dict) else None
+        if isinstance(props, dict):
+            required = set(body.get("required") or [])
+            for name, schema in props.items():
+                body_params.append({
+                    "name": name,
+                    "schema": schema if isinstance(schema, dict) else {"type": "string"},
+                    "required": name in required,
+                })
+
+        return {
+            "method": endpoint.method,
+            "path": endpoint.path,
+            "path_params": path_params,
+            "query_params": query_params,
+            "body_params": body_params,
+            "has_body": bool(body_params),
         }

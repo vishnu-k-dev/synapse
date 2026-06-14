@@ -29,14 +29,30 @@ server.tool(
   "{{ tool.description | replace('"', '\\"') }}",
   {
     {% for param in tool.required_params -%}
-    {{ param.name }}: z.string(),
+    {{ param.arg }}: z.{{ 'number' if param.type in ['int', 'float'] else ('boolean' if param.type == 'bool' else 'string') }}(),
     {% endfor -%}
     {% for param in tool.optional_params -%}
-    {{ param.name }}: z.string().optional(),
+    {{ param.arg }}: z.{{ 'number' if param.type in ['int', 'float'] else ('boolean' if param.type == 'bool' else 'string') }}().optional(),
     {% endfor -%}
   },
   async (args) => {
-    const result = await apiRequest("GET", "/", args);
+    const { {% for p in tool.required_params %}{{ p.arg }}{{ ", " }}{% endfor %}{% for p in tool.optional_params %}{{ p.arg }}{% if not loop.last %}, {% endif %}{% endfor %} } = args as Record<string, unknown>;
+    let _path = `{{ tool.path | replace('{', '${') }}`;
+    const _q = new URLSearchParams();
+    {% for p in tool.query_args -%}
+    if ({{ p.arg }} !== undefined) _q.set("{{ p.name }}", String({{ p.arg }}));
+    {% endfor -%}
+    const _qs = _q.toString();
+    if (_qs) _path += `?${_qs}`;
+    {% if tool.has_body -%}
+    const _body: Record<string, unknown> = {};
+    {% for p in tool.body_args -%}
+    if ({{ p.arg }} !== undefined) _body["{{ p.name }}"] = {{ p.arg }};
+    {% endfor -%}
+    const result = await apiRequest("{{ tool.method }}", _path, _body);
+    {% else -%}
+    const result = await apiRequest("{{ tool.method }}", _path);
+    {% endif -%}
     return { content: [{ type: "text", text: JSON.stringify(result) }] };
   }
 );

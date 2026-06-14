@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import keyword
+import re
 import uuid
 from pathlib import Path
 from typing import Any
@@ -21,6 +23,16 @@ from app.storage.minio import get_minio_client
 logger = get_logger(__name__)
 
 _TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+
+
+def _schema_type(param: dict[str, Any]) -> str:
+    """Best-effort JSON-schema type for a routing param entry."""
+    schema = param.get("schema")
+    if isinstance(schema, dict):
+        t = schema.get("type")
+        if isinstance(t, str):
+            return t
+    return "string"
 
 
 class SynthesisEngine(BaseStage):
@@ -125,7 +137,8 @@ class SynthesisEngine(BaseStage):
     def _build_tool_context(
         self, tools_raw: list[dict[str, Any]], permission_scopes: list[str]
     ) -> list[dict[str, Any]]:
-        tools = []
+        tools: list[dict[str, Any]] = []
+        used_names: set[str] = set()
         for row in tools_raw:
             t = row.get("t") or {}
             required_scopes = t.get("permission_scope") or []
@@ -134,20 +147,110 @@ class SynthesisEngine(BaseStage):
                 if not all(s in permission_scopes for s in required_scopes):
                     continue
 
-            try:
-                schema = json.loads(t.get("unified_schema") or "{}")
-            except Exception:
-                schema = {}
+            member_ops = [op for op in (row.get("operations") or []) if op and op.get("id")]
+            primary = self._select_primary(member_ops)
+            routing = self._parse_routing(primary)
+
+            required_params, optional_params, query_args, body_args, url_path = (
+                self._routing_to_params(routing)
+            )
 
             tools.append({
-                "name": t.get("name", "unknown_tool"),
-                "description": t.get("description", ""),
-                "schema": schema,
-                "is_workflow": t.get("is_workflow", False),
-                "required_params": self._extract_required_params(schema),
-                "optional_params": self._extract_optional_params(schema),
+                "name": self._unique_tool_name(t.get("name", "call_tool"), used_names),
+                "description": (t.get("description") or "").replace("\n", " ").strip()
+                or "Calls the underlying API operation.",
+                "is_workflow": False,
+                "method": (routing.get("method") or "GET").upper(),
+                "path": url_path,
+                "required_params": required_params,
+                "optional_params": optional_params,
+                "query_args": query_args,
+                "body_args": body_args,
+                "has_body": bool(body_args),
+                "member_count": len(member_ops),
             })
         return tools
+
+    def _select_primary(self, member_ops: list[dict[str, Any]]) -> dict[str, Any] | None:
+        """Pick the operation whose routing drives the generated call. Prefer a
+        write op (richest params); fall back to the first member."""
+        if not member_ops:
+            return None
+        for op in member_ops:
+            if self._parse_routing(op).get("has_body"):
+                return op
+        return member_ops[0]
+
+    def _parse_routing(self, op: dict[str, Any] | None) -> dict[str, Any]:
+        if not op:
+            return {}
+        try:
+            return json.loads(op.get("routing") or "{}")
+        except Exception:
+            return {}
+
+    def _routing_to_params(
+        self, routing: dict[str, Any]
+    ) -> tuple[list[dict], list[dict], list[dict], list[dict], str]:
+        """Turn a routing dict into signature params + request builders.
+
+        Returns (required_params, optional_params, query_args, body_args, url_path).
+        Path params are substituted into url_path using the sanitized arg name so
+        the rendered f-string resolves against the function arguments.
+        """
+        seen: set[str] = set()
+
+        def arg_of(name: str) -> str:
+            a = re.sub(r"\W", "_", name) or "param"
+            if not (a[0].isalpha() or a[0] == "_"):
+                a = "p_" + a
+            if keyword.iskeyword(a):
+                a = a + "_"
+            base, i = a, 2
+            while a in seen:
+                a, i = f"{base}{i}", i + 1
+            seen.add(a)
+            return a
+
+        required: list[dict] = []
+        optional: list[dict] = []
+        query_args: list[dict] = []
+        body_args: list[dict] = []
+        url_path = routing.get("path") or "/"
+
+        for p in routing.get("path_params", []):
+            arg = arg_of(p["name"])
+            url_path = url_path.replace("{" + p["name"] + "}", "{" + arg + "}")
+            required.append({"arg": arg, "name": p["name"], "location": "path",
+                             "type": self._json_type_to_python(_schema_type(p))})
+
+        for p in routing.get("query_params", []):
+            arg = arg_of(p["name"])
+            entry = {"arg": arg, "name": p["name"], "location": "query",
+                     "type": self._json_type_to_python(_schema_type(p))}
+            (required if p.get("required") else optional).append(entry)
+            query_args.append({"arg": arg, "name": p["name"]})
+
+        for p in routing.get("body_params", []):
+            arg = arg_of(p["name"])
+            entry = {"arg": arg, "name": p["name"], "location": "body",
+                     "type": self._json_type_to_python(_schema_type(p))}
+            (required if p.get("required") else optional).append(entry)
+            body_args.append({"arg": arg, "name": p["name"]})
+
+        return required, optional, query_args, body_args, url_path
+
+    def _unique_tool_name(self, raw: str, used: set[str]) -> str:
+        name = re.sub(r"\W", "_", (raw or "call_tool").strip().lower()).strip("_") or "call_tool"
+        if not (name[0].isalpha() or name[0] == "_"):
+            name = "op_" + name
+        if keyword.iskeyword(name):
+            name = name + "_"
+        base, i = name, 2
+        while name in used:
+            name, i = f"{base}_{i}", i + 1
+        used.add(name)
+        return name
 
     def _build_workflow_context(self, workflows_raw: list[dict[str, Any]]) -> list[dict[str, Any]]:
         workflows = []
@@ -160,24 +263,6 @@ class SynthesisEngine(BaseStage):
                 "steps": [s.get("op_id") for s in steps if s.get("op_id")],
             })
         return workflows
-
-    def _extract_required_params(self, schema: dict[str, Any]) -> list[dict[str, Any]]:
-        props = schema.get("properties") or {}
-        required = set(schema.get("required") or [])
-        return [
-            {"name": k, "type": self._json_type_to_python(v.get("type", "str"))}
-            for k, v in props.items()
-            if k in required
-        ]
-
-    def _extract_optional_params(self, schema: dict[str, Any]) -> list[dict[str, Any]]:
-        props = schema.get("properties") or {}
-        required = set(schema.get("required") or [])
-        return [
-            {"name": k, "type": self._json_type_to_python(v.get("type", "str"))}
-            for k, v in props.items()
-            if k not in required
-        ]
 
     def _json_type_to_python(self, json_type: str) -> str:
         return {
