@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from app.core.config import get_settings
 
@@ -19,11 +20,14 @@ def get_engine() -> AsyncEngine:
     global _engine
     if _engine is None:
         settings = get_settings()
+        # NullPool: never retain connections between checkouts. Celery runs each
+        # task in its own asyncio.run() loop; a pooled asyncpg connection created
+        # on one loop and reused on the next raises "attached to a different loop".
+        # NullPool opens/closes a fresh connection per session, keeping the engine
+        # safe to use across event loops (and fine for this workload's concurrency).
         _engine = create_async_engine(
             settings.postgres_dsn,
-            pool_size=10,
-            max_overflow=20,
-            pool_pre_ping=True,
+            poolclass=NullPool,
             echo=settings.app_debug,
         )
     return _engine
@@ -53,7 +57,8 @@ async def get_db() -> AsyncIterator[AsyncSession]:
 
 
 async def close_engine() -> None:
-    global _engine
+    global _engine, _session_factory
     if _engine is not None:
         await _engine.dispose()
-        _engine = None
+    _engine = None
+    _session_factory = None

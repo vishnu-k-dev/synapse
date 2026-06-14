@@ -57,11 +57,23 @@ class Settings(BaseSettings):
 
     # ── MinIO ──────────────────────────────────────────────────────────────────
     minio_endpoint: str = "localhost:9000"
+    # Endpoint used to build presigned URLs handed to external clients. When the
+    # backend talks to MinIO over a Docker-internal host (minio:9000) but clients
+    # reach it at localhost:9000, set this so signatures match the fetch host.
+    # Empty → fall back to minio_endpoint.
+    minio_public_endpoint: str = ""
     minio_access_key: str = "minioadmin"
     minio_secret_key: str = "minioadmin"
     minio_bucket_specs: str = "synapse-specs"
     minio_bucket_artifacts: str = "synapse-artifacts"
     minio_secure: bool = False
+    # Explicit region avoids the SDK's region-discovery HTTP call, which is
+    # required for the presign client (its endpoint isn't reachable from here).
+    minio_region: str = "us-east-1"
+
+    @property
+    def minio_presign_endpoint(self) -> str:
+        return self.minio_public_endpoint or self.minio_endpoint
 
     # ── LLM ───────────────────────────────────────────────────────────────────
     openai_api_key: str = Field(..., description="OpenAI API key")

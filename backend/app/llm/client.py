@@ -291,6 +291,17 @@ class LLMClient:
         except Exception as exc:
             logger.warning("llm_log_failed", error=str(exc))
 
+    async def aclose(self) -> None:
+        """Close underlying async HTTP clients (bound to the current event loop)."""
+        try:
+            await self._openai.close()
+        except Exception:
+            pass
+        try:
+            await self._anthropic.close()
+        except Exception:
+            pass
+
 
 _client: LLMClient | None = None
 
@@ -300,3 +311,11 @@ def get_llm_client() -> LLMClient:
     if _client is None:
         _client = LLMClient()
     return _client
+
+
+async def close_llm_client() -> None:
+    """Dispose the LLM client singleton so the next event loop gets fresh HTTP clients."""
+    global _client
+    if _client is not None:
+        await _client.aclose()
+        _client = None

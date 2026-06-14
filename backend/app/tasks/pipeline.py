@@ -14,8 +14,25 @@ logger = get_logger(__name__)
 
 
 def _run(coro: Any) -> Any:
-    """Run an async coroutine from a synchronous Celery task."""
-    return asyncio.run(coro)
+    """Run an async coroutine from a synchronous Celery task.
+
+    Each task gets a fresh event loop via asyncio.run(). Global async singletons
+    (SQLAlchemy engine, Neo4j driver, OpenAI/Anthropic HTTP clients) bind to the
+    loop that first uses them, so they must be disposed before the loop closes —
+    otherwise the next task hits "Future attached to a different loop".
+    """
+    async def _wrapper() -> Any:
+        try:
+            return await coro
+        finally:
+            from app.db.engine import close_engine
+            from app.graph.client import close_driver
+            from app.llm.client import close_llm_client
+            await close_engine()
+            await close_driver()
+            await close_llm_client()
+
+    return asyncio.run(_wrapper())
 
 
 # ── Individual stage tasks ────────────────────────────────────────────────────

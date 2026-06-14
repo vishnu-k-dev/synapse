@@ -131,6 +131,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: The requested owner
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Owner" }
@@ -175,6 +176,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: Pets owned by the specified owner
           content:
             application/json:
               schema:
@@ -195,6 +197,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: A list of appointments
           content:
             application/json:
               schema:
@@ -210,6 +213,7 @@ paths:
             schema: { $ref: "#/components/schemas/NewAppointment" }
       responses:
         "201":
+          description: Appointment created
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Appointment" }
@@ -226,6 +230,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: The requested appointment
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Appointment" }
@@ -249,6 +254,7 @@ paths:
       tags: [vets]
       responses:
         "200":
+          description: A list of veterinarians
           content:
             application/json:
               schema:
@@ -267,6 +273,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: The requested veterinarian
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Vet" }
@@ -282,6 +289,7 @@ paths:
             schema: { $ref: "#/components/schemas/NewMedicalRecord" }
       responses:
         "201":
+          description: Medical record created
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MedicalRecord" }
@@ -298,6 +306,7 @@ paths:
           schema: { type: string }
       responses:
         "200":
+          description: The requested medical record
           content:
             application/json:
               schema: { $ref: "#/components/schemas/MedicalRecord" }

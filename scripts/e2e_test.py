@@ -37,18 +37,26 @@ from pathlib import Path
 
 import httpx
 
+# Force UTF-8 output so box-drawing chars / checkmarks don't crash on Windows cp1252.
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")  # type: ignore[union-attr]
+    except (AttributeError, ValueError):
+        pass
+
 # ── Paths ─────────────────────────────────────────────────────────────────────
 REPO_ROOT = Path(__file__).parent.parent
 PETSTORE_SPEC = REPO_ROOT / "tests" / "fixtures" / "petstore.yaml"
 BACKEND_DIR = REPO_ROOT / "backend"
 
-# ── Colours ───────────────────────────────────────────────────────────────────
-GREEN  = "\033[92m"
-RED    = "\033[91m"
-YELLOW = "\033[93m"
-CYAN   = "\033[96m"
-BOLD   = "\033[1m"
-RESET  = "\033[0m"
+# ── Colours (disabled when not a TTY, e.g. piped/captured output) ─────────────
+_COLOR = sys.stdout.isatty()
+GREEN  = "\033[92m" if _COLOR else ""
+RED    = "\033[91m" if _COLOR else ""
+YELLOW = "\033[93m" if _COLOR else ""
+CYAN   = "\033[96m" if _COLOR else ""
+BOLD   = "\033[1m" if _COLOR else ""
+RESET  = "\033[0m" if _COLOR else ""
 
 
 def ok(msg: str) -> None:
@@ -310,9 +318,12 @@ def assert_minio_artifact(api_url: str, api_key: str, job_id: str) -> None:
             try:
                 artifact = ar.json()
                 ok(f"Artifact JSON fetched — keys: {list(artifact.keys())[:6]}")
-                tool_count = len(artifact.get("tools", []))
-                workflow_count = len(artifact.get("workflows", []))
-                ok(f"Artifact: {tool_count} tools, {workflow_count} workflows")
+                tool_count = artifact.get("tool_count", len(artifact.get("tools", [])))
+                workflow_count = artifact.get("workflow_count", len(artifact.get("workflows", [])))
+                files = list((artifact.get("files") or {}).keys())
+                ok(f"Artifact: {tool_count} tools, {workflow_count} workflows, files={files}")
+                if tool_count == 0:
+                    warn("Artifact has 0 tools — synthesis may have produced an empty server")
             except Exception:
                 warn("Artifact fetched but not valid JSON")
         else:

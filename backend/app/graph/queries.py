@@ -237,10 +237,10 @@ class GraphQueries:
         results = await self._db.run_query(
             """
             RETURN
-              size([(e:Entity {app_id: $app_id}) | e])     AS entities,
-              size([(o:Operation {app_id: $app_id}) | o])   AS operations,
-              size([(t:Tool {app_id: $app_id}) | t])        AS tools,
-              size([(w:Workflow {app_id: $app_id}) | w])    AS workflows
+              COUNT { MATCH (e:Entity {app_id: $app_id}) RETURN e }     AS entities,
+              COUNT { MATCH (o:Operation {app_id: $app_id}) RETURN o }  AS operations,
+              COUNT { MATCH (t:Tool {app_id: $app_id}) RETURN t }       AS tools,
+              COUNT { MATCH (w:Workflow {app_id: $app_id}) RETURN w }   AS workflows
             """,
             {"app_id": app_id},
         )

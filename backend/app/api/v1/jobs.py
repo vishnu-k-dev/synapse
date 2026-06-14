@@ -38,14 +38,15 @@ async def get_job_status(
 
     artifact_url = None
     if job.artifact_object_key:
+        from app.core.logging import get_logger
         from app.storage.minio import get_minio_client
         try:
             minio = get_minio_client()
             artifact_url = await minio.get_presigned_url(
                 minio.bucket_artifacts, job.artifact_object_key
             )
-        except Exception:
-            pass
+        except Exception as exc:
+            get_logger(__name__).warning("presign_failed", error=str(exc))
 
     return JobStatusResponse(
         job_id=job.id,

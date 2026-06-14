@@ -21,6 +21,18 @@ class MinioClient:
             access_key=settings.minio_access_key,
             secret_key=settings.minio_secret_key,
             secure=settings.minio_secure,
+            region=settings.minio_region,
+        )
+        # Separate client used only to mint presigned URLs against the
+        # externally-reachable endpoint. An explicit region is required so the
+        # SDK does not attempt a region-discovery call to that endpoint (which
+        # is not reachable from the backend).
+        self._presign_client = Minio(
+            endpoint=settings.minio_presign_endpoint,
+            access_key=settings.minio_access_key,
+            secret_key=settings.minio_secret_key,
+            secure=settings.minio_secure,
+            region=settings.minio_region,
         )
         self.bucket_specs = settings.minio_bucket_specs
         self.bucket_artifacts = settings.minio_bucket_artifacts
@@ -73,7 +85,7 @@ class MinioClient:
         import asyncio
         try:
             return await asyncio.to_thread(
-                self._client.presigned_get_object,
+                self._presign_client.presigned_get_object,
                 bucket_name=bucket,
                 object_name=key,
                 expires=timedelta(seconds=expires_seconds),

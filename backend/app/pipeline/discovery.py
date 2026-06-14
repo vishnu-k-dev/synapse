@@ -62,6 +62,27 @@ def _safe_remote_loader(uri: str) -> dict[str, Any]:
         return response.json()
 
 
+def _to_plain(obj: Any, _depth: int = 0) -> Any:
+    """Materialize jsonref proxy objects into plain JSON-serializable structures.
+
+    jsonref.replace_refs returns lazy JsonRef proxies for every resolved $ref;
+    those proxies are not JSON-serializable and must not reach Postgres. The
+    depth guard protects against self-referential (cyclic) schemas.
+    """
+    if _depth > 60:
+        return None
+    if hasattr(obj, "keys") and hasattr(obj, "__getitem__"):
+        try:
+            return {str(k): _to_plain(obj[k], _depth + 1) for k in obj.keys()}
+        except Exception:
+            return None
+    if isinstance(obj, (list, tuple)):
+        return [_to_plain(v, _depth + 1) for v in obj]
+    if isinstance(obj, (str, int, float, bool)) or obj is None:
+        return obj
+    return str(obj)
+
+
 class OpenAPIParser:
     """Parses OpenAPI 3.x (JSON or YAML) into a list of RawEndpoints."""
 
@@ -128,7 +149,7 @@ class OpenAPIParser:
         return RawApplicationModel(
             app_id=app_id,
             endpoints=endpoints,
-            security_schemes=dict(security_schemes),
+            security_schemes=_to_plain(security_schemes) or {},
             servers=servers,
             source_format="openapi3",
         )
@@ -140,7 +161,7 @@ class OpenAPIParser:
         content = rb.get("content") or {}
         for media_type in ("application/json", "application/x-www-form-urlencoded"):
             if media_type in content:
-                return content[media_type].get("schema")
+                return _to_plain(content[media_type].get("schema"))
         return None
 
     def _extract_response_schema(self, op: dict[str, Any]) -> dict[str, Any] | None:
@@ -151,7 +172,7 @@ class OpenAPIParser:
                 continue
             content = resp.get("content") or {}
             if "application/json" in content:
-                return content["application/json"].get("schema")
+                return _to_plain(content["application/json"].get("schema"))
         return None
 
     def _extract_security(self, op: dict[str, Any], spec: dict[str, Any]) -> list[str]:
@@ -163,7 +184,7 @@ class OpenAPIParser:
             name=p.get("name", ""),
             **{"in": p.get("in", "query")},
             required=p.get("required", False),
-            schema=p.get("schema"),
+            schema=_to_plain(p.get("schema")),
             description=p.get("description"),
         )
 

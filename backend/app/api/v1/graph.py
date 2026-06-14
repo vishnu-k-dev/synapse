@@ -9,6 +9,25 @@ from app.schemas.api import GraphEdgeSchema, GraphNodeSchema, GraphResponse, Upd
 
 router = APIRouter(prefix="/graph", tags=["graph"])
 
+_JSON_PRIMITIVES = (str, int, float, bool, type(None))
+
+
+def _clean_props(props: dict, *, drop: tuple[str, ...] = ("embedding",)) -> dict:
+    """Sanitize Neo4j node properties for JSON serialization.
+
+    Neo4j returns temporal values (e.g. created_at) as neo4j.time.DateTime,
+    which FastAPI/pydantic cannot serialize. Coerce any non-JSON-primitive to str.
+    """
+    out: dict = {}
+    for k, v in props.items():
+        if k in drop:
+            continue
+        if isinstance(v, _JSON_PRIMITIVES) or isinstance(v, (list, dict)):
+            out[k] = v
+        else:
+            out[k] = str(v)
+    return out
+
 
 def _get_queries() -> GraphQueries:
     return GraphQueries(get_neo4j_client())
@@ -36,7 +55,7 @@ async def get_graph(
             id=e.get("id", ""),
             label=e.get("name", ""),
             node_type="Entity",
-            properties={k: v for k, v in e.items() if k != "embedding"},
+            properties=_clean_props(e),
         ))
 
     for row in operations:
@@ -45,7 +64,7 @@ async def get_graph(
             id=o.get("id", ""),
             label=o.get("canonical_name") or o.get("http_path", ""),
             node_type="Operation",
-            properties={k: v for k, v in o.items() if k != "embedding"},
+            properties=_clean_props(o),
         ))
         # OPERATES_ON edge
         if o.get("entity"):
@@ -64,7 +83,7 @@ async def get_graph(
             id=t.get("id", ""),
             label=t.get("name", ""),
             node_type="Tool",
-            properties={k: v for k, v in t.items() if k not in ("embedding",)},
+            properties=_clean_props(t),
         ))
 
     for row in workflows:
@@ -73,7 +92,7 @@ async def get_graph(
             id=w.get("id", ""),
             label=w.get("name", ""),
             node_type="Workflow",
-            properties=dict(w),
+            properties=_clean_props(w),
         ))
 
     return GraphResponse(app_id=app_id, nodes=nodes, edges=edges, stats=stats)

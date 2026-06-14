@@ -28,16 +28,18 @@ def upgrade() -> None:
     op.execute("CREATE TYPE event_status_enum AS ENUM ('running','complete','failed')")
 
     # ── applications ──────────────────────────────────────────────────────────
+    # create_type=False: enum types are created manually above via op.execute;
+    # without this, sa.Enum re-emits CREATE TYPE and conflicts within the txn.
     op.create_table(
         "applications",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("name", sa.String(255), nullable=False),
         sa.Column("description", sa.Text),
         sa.Column("base_url", sa.String(1024)),
-        sa.Column("auth_type", sa.Enum("bearer", "api_key", "oauth2", "none", name="auth_type_enum"), nullable=True),
+        sa.Column("auth_type", postgresql.ENUM("bearer", "api_key", "oauth2", "none", name="auth_type_enum", create_type=False), nullable=True),
         sa.Column("auth_credentials_encrypted", sa.Text),
         sa.Column("spec_object_key", sa.String(512)),
-        sa.Column("source_format", sa.Enum("openapi3", "postman21", name="source_format_enum"), nullable=True),
+        sa.Column("source_format", postgresql.ENUM("openapi3", "postman21", name="source_format_enum", create_type=False), nullable=True),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
     )
@@ -47,7 +49,7 @@ def upgrade() -> None:
         "jobs",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("app_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("applications.id"), nullable=False),
-        sa.Column("status", sa.Enum("pending","running","complete","failed","cancelled", name="job_status_enum"), nullable=False, server_default="pending"),
+        sa.Column("status", postgresql.ENUM("pending","running","complete","failed","cancelled", name="job_status_enum", create_type=False), nullable=False, server_default="pending"),
         sa.Column("pipeline_config", postgresql.JSONB, nullable=False, server_default="{}"),
         sa.Column("raw_model", postgresql.JSONB),
         sa.Column("annotated_model", postgresql.JSONB),
@@ -65,8 +67,8 @@ def upgrade() -> None:
         "pipeline_events",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True),
         sa.Column("job_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("jobs.id"), nullable=False),
-        sa.Column("stage", sa.Enum("discovery","extractor","graph_builder","semantic_engine","compression","workflow_discovery","synthesizer", name="pipeline_stage_enum"), nullable=False),
-        sa.Column("status", sa.Enum("running","complete","failed", name="event_status_enum"), nullable=False),
+        sa.Column("stage", postgresql.ENUM("discovery","extractor","graph_builder","semantic_engine","compression","workflow_discovery","synthesizer", name="pipeline_stage_enum", create_type=False), nullable=False),
+        sa.Column("status", postgresql.ENUM("running","complete","failed", name="event_status_enum", create_type=False), nullable=False),
         sa.Column("summary", postgresql.JSONB),
         sa.Column("error_message", sa.Text),
         sa.Column("started_at", sa.DateTime(timezone=True), server_default=sa.text("now()")),
