@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SYNAPSE — Live Console</title>
+  <link rel="stylesheet" href="console.css" />
+</head>
+<body>
+  <header id="hdr">
+    <span class="logo">SYNAPSE</span>
+    <span class="tagline">Live Console</span>
+    <span class="flow-pill"><b>Agent</b> ⇄ <b>MCP</b> ⇄ <b>API</b></span>
+    <nav class="nav"><a href="index.html">◹ Capability Graph</a></nav>
+  </header>
+
+  <div id="app">
+    <section id="left">
+      <div id="tasks">
+        <div class="lbl">Try a task — watch the agent use SYNAPSE's tools</div>
+        <div id="chiplist"></div>
+      </div>
+      <div id="chat">
+        <div class="msg assistant"><div class="who">SYNAPSE</div>Pick a task above and I'll drive the agent against the generated MCP tools — you'll see each <code>tools/call</code> fire against the API.</div>
+      </div>
+    </section>
+
+    <section id="right">
+      <div id="stage">
+        <div class="stage-tag">MCP tool fabric</div>
+        <div id="cy"></div>
+        <div id="metrics"></div>
+      </div>
+      <div id="wire">
+        <div class="wh"><span class="live"></span> MCP wire — JSON-RPC frames</div>
+        <div id="wirelog"></div>
+      </div>
+    </section>
+  </div>
+
+  <script src="vendor/cytoscape.min.js"></script>
+  <script src="scenarios.js"></script>
+  <script src="console.js"></script>
+</body>
+</html>
