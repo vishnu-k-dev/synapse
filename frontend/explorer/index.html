@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SYNAPSE — Capability Graph Explorer</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header id="topbar">
+    <div class="brand">SYNAPSE <span>Capability Graph Explorer</span></div>
+    <div id="stats" class="stats"></div>
+    <div class="controls">
+      <button id="btn-raw" class="btn">Raw API</button>
+      <button id="btn-compress" class="btn btn-primary">Run SYNAPSE compression →</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div id="cy"></div>
+
+    <aside id="panel" class="panel">
+      <div class="panel-empty">Click any node to inspect it.</div>
+    </aside>
+
+    <div id="legend" class="legend">
+      <span><i class="dot entity"></i>Entity</span>
+      <span><i class="dot operation"></i>Operation</span>
+      <span><i class="dot tool"></i>Tool</span>
+      <span><i class="dot workflow"></i>Workflow</span>
+    </div>
+  </main>
+
+  <script src="vendor/cytoscape.min.js"></script>
+  <script src="sample-graph.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,727 @@
+window.SAMPLE_GRAPH = {
+  "app_id": "petstore-demo",
+  "nodes": [
+    {
+      "id": "e_Pet",
+      "label": "Pet",
+      "node_type": "Entity",
+      "properties": {
+        "plural": "pets"
+      }
+    },
+    {
+      "id": "e_Owner",
+      "label": "Owner",
+      "node_type": "Entity",
+      "properties": {
+        "plural": "owners"
+      }
+    },
+    {
+      "id": "e_Vet",
+      "label": "Vet",
+      "node_type": "Entity",
+      "properties": {
+        "plural": "vets"
+      }
+    },
+    {
+      "id": "e_Appointment",
+      "label": "Appointment",
+      "node_type": "Entity",
+      "properties": {
+        "plural": "appointments"
+      }
+    },
+    {
+      "id": "e_MedicalRecord",
+      "label": "MedicalRecord",
+      "node_type": "Entity",
+      "properties": {
+        "plural": "medical_records"
+      }
+    },
+    {
+      "id": "op_listPets",
+      "label": "listPets",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/pets",
+        "entity": "Pet"
+      }
+    },
+    {
+      "id": "op_createPet",
+      "label": "createPet",
+      "node_type": "Operation",
+      "properties": {
+        "method": "POST",
+        "path": "/pets",
+        "entity": "Pet"
+      }
+    },
+    {
+      "id": "op_getPetById",
+      "label": "getPetById",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/pets/{petId}",
+        "entity": "Pet"
+      }
+    },
+    {
+      "id": "op_updatePet",
+      "label": "updatePet",
+      "node_type": "Operation",
+      "properties": {
+        "method": "PUT",
+        "path": "/pets/{petId}",
+        "entity": "Pet"
+      }
+    },
+    {
+      "id": "op_deletePet",
+      "label": "deletePet",
+      "node_type": "Operation",
+      "properties": {
+        "method": "DELETE",
+        "path": "/pets/{petId}",
+        "entity": "Pet"
+      }
+    },
+    {
+      "id": "op_listOwnerPets",
+      "label": "listOwnerPets",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/owners/{ownerId}/pets",
+        "entity": "Pet"
+      }
+    },
+    {
+      "id": "op_listOwners",
+      "label": "listOwners",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/owners",
+        "entity": "Owner"
+      }
+    },
+    {
+      "id": "op_createOwner",
+      "label": "createOwner",
+      "node_type": "Operation",
+      "properties": {
+        "method": "POST",
+        "path": "/owners",
+        "entity": "Owner"
+      }
+    },
+    {
+      "id": "op_getOwner",
+      "label": "getOwner",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/owners/{ownerId}",
+        "entity": "Owner"
+      }
+    },
+    {
+      "id": "op_updateOwner",
+      "label": "updateOwner",
+      "node_type": "Operation",
+      "properties": {
+        "method": "PUT",
+        "path": "/owners/{ownerId}",
+        "entity": "Owner"
+      }
+    },
+    {
+      "id": "op_deleteOwner",
+      "label": "deleteOwner",
+      "node_type": "Operation",
+      "properties": {
+        "method": "DELETE",
+        "path": "/owners/{ownerId}",
+        "entity": "Owner"
+      }
+    },
+    {
+      "id": "op_listAppointments",
+      "label": "listAppointments",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/appointments",
+        "entity": "Appointment"
+      }
+    },
+    {
+      "id": "op_createAppointment",
+      "label": "createAppointment",
+      "node_type": "Operation",
+      "properties": {
+        "method": "POST",
+        "path": "/appointments",
+        "entity": "Appointment"
+      }
+    },
+    {
+      "id": "op_getAppointment",
+      "label": "getAppointment",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/appointments/{id}",
+        "entity": "Appointment"
+      }
+    },
+    {
+      "id": "op_cancelAppointment",
+      "label": "cancelAppointment",
+      "node_type": "Operation",
+      "properties": {
+        "method": "DELETE",
+        "path": "/appointments/{id}",
+        "entity": "Appointment"
+      }
+    },
+    {
+      "id": "op_listVets",
+      "label": "listVets",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/vets",
+        "entity": "Vet"
+      }
+    },
+    {
+      "id": "op_getVet",
+      "label": "getVet",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/vets/{vetId}",
+        "entity": "Vet"
+      }
+    },
+    {
+      "id": "op_createMedicalRecord",
+      "label": "createMedicalRecord",
+      "node_type": "Operation",
+      "properties": {
+        "method": "POST",
+        "path": "/medical-records",
+        "entity": "MedicalRecord"
+      }
+    },
+    {
+      "id": "op_getMedicalRecord",
+      "label": "getMedicalRecord",
+      "node_type": "Operation",
+      "properties": {
+        "method": "GET",
+        "path": "/medical-records/{recordId}",
+        "entity": "MedicalRecord"
+      }
+    },
+    {
+      "id": "t_manage_pets",
+      "label": "manage_pets",
+      "node_type": "Tool",
+      "properties": {
+        "entity": "Pet",
+        "description": "List, create, fetch, update, delete pets (incl. an owner's pets).",
+        "member_count": 6,
+        "members": [
+          "listPets",
+          "createPet",
+          "getPetById",
+          "updatePet",
+          "deletePet",
+          "listOwnerPets"
+        ],
+        "compression_ratio": 6
+      }
+    },
+    {
+      "id": "t_manage_owners",
+      "label": "manage_owners",
+      "node_type": "Tool",
+      "properties": {
+        "entity": "Owner",
+        "description": "List, create, fetch, update, delete pet owners.",
+        "member_count": 5,
+        "members": [
+          "listOwners",
+          "createOwner",
+          "getOwner",
+          "updateOwner",
+          "deleteOwner"
+        ],
+        "compression_ratio": 5
+      }
+    },
+    {
+      "id": "t_manage_appointments",
+      "label": "manage_appointments",
+      "node_type": "Tool",
+      "properties": {
+        "entity": "Appointment",
+        "description": "List, book, fetch, and cancel vet appointments.",
+        "member_count": 4,
+        "members": [
+          "listAppointments",
+          "createAppointment",
+          "getAppointment",
+          "cancelAppointment"
+        ],
+        "compression_ratio": 4
+      }
+    },
+    {
+      "id": "t_manage_vets",
+      "label": "manage_vets",
+      "node_type": "Tool",
+      "properties": {
+        "entity": "Vet",
+        "description": "List and fetch veterinarians.",
+        "member_count": 2,
+        "members": [
+          "listVets",
+          "getVet"
+        ],
+        "compression_ratio": 2
+      }
+    },
+    {
+      "id": "t_manage_medical_records",
+      "label": "manage_medical_records",
+      "node_type": "Tool",
+      "properties": {
+        "entity": "MedicalRecord",
+        "description": "Create and fetch medical records.",
+        "member_count": 2,
+        "members": [
+          "createMedicalRecord",
+          "getMedicalRecord"
+        ],
+        "compression_ratio": 2
+      }
+    },
+    {
+      "id": "wf_register_and_add_pet",
+      "label": "register_and_add_pet",
+      "node_type": "Workflow",
+      "properties": {
+        "description": "Register an owner, then add a pet that belongs to them.",
+        "steps": [
+          "createOwner",
+          "createPet"
+        ]
+      }
+    },
+    {
+      "id": "wf_book_vet_visit",
+      "label": "book_vet_visit",
+      "node_type": "Workflow",
+      "properties": {
+        "description": "Book an appointment, then file the medical record for the visit.",
+        "steps": [
+          "createAppointment",
+          "createMedicalRecord"
+        ]
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "oo_listPets",
+      "source": "op_listPets",
+      "target": "e_Pet",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_listPets",
+      "source": "op_listPets",
+      "target": "t_manage_pets",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_createPet",
+      "source": "op_createPet",
+      "target": "e_Pet",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_createPet",
+      "source": "op_createPet",
+      "target": "t_manage_pets",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_getPetById",
+      "source": "op_getPetById",
+      "target": "e_Pet",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_getPetById",
+      "source": "op_getPetById",
+      "target": "t_manage_pets",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_updatePet",
+      "source": "op_updatePet",
+      "target": "e_Pet",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_updatePet",
+      "source": "op_updatePet",
+      "target": "t_manage_pets",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_deletePet",
+      "source": "op_deletePet",
+      "target": "e_Pet",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_deletePet",
+      "source": "op_deletePet",
+      "target": "t_manage_pets",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_listOwnerPets",
+      "source": "op_listOwnerPets",
+      "target": "e_Pet",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_listOwnerPets",
+      "source": "op_listOwnerPets",
+      "target": "t_manage_pets",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_listOwners",
+      "source": "op_listOwners",
+      "target": "e_Owner",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_listOwners",
+      "source": "op_listOwners",
+      "target": "t_manage_owners",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_createOwner",
+      "source": "op_createOwner",
+      "target": "e_Owner",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_createOwner",
+      "source": "op_createOwner",
+      "target": "t_manage_owners",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_getOwner",
+      "source": "op_getOwner",
+      "target": "e_Owner",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_getOwner",
+      "source": "op_getOwner",
+      "target": "t_manage_owners",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_updateOwner",
+      "source": "op_updateOwner",
+      "target": "e_Owner",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_updateOwner",
+      "source": "op_updateOwner",
+      "target": "t_manage_owners",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_deleteOwner",
+      "source": "op_deleteOwner",
+      "target": "e_Owner",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_deleteOwner",
+      "source": "op_deleteOwner",
+      "target": "t_manage_owners",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_listAppointments",
+      "source": "op_listAppointments",
+      "target": "e_Appointment",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_listAppointments",
+      "source": "op_listAppointments",
+      "target": "t_manage_appointments",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_createAppointment",
+      "source": "op_createAppointment",
+      "target": "e_Appointment",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_createAppointment",
+      "source": "op_createAppointment",
+      "target": "t_manage_appointments",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_getAppointment",
+      "source": "op_getAppointment",
+      "target": "e_Appointment",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_getAppointment",
+      "source": "op_getAppointment",
+      "target": "t_manage_appointments",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_cancelAppointment",
+      "source": "op_cancelAppointment",
+      "target": "e_Appointment",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_cancelAppointment",
+      "source": "op_cancelAppointment",
+      "target": "t_manage_appointments",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_listVets",
+      "source": "op_listVets",
+      "target": "e_Vet",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_listVets",
+      "source": "op_listVets",
+      "target": "t_manage_vets",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_getVet",
+      "source": "op_getVet",
+      "target": "e_Vet",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_getVet",
+      "source": "op_getVet",
+      "target": "t_manage_vets",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_createMedicalRecord",
+      "source": "op_createMedicalRecord",
+      "target": "e_MedicalRecord",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_createMedicalRecord",
+      "source": "op_createMedicalRecord",
+      "target": "t_manage_medical_records",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "oo_getMedicalRecord",
+      "source": "op_getMedicalRecord",
+      "target": "e_MedicalRecord",
+      "edge_type": "OPERATES_ON",
+      "properties": {}
+    },
+    {
+      "id": "ci_getMedicalRecord",
+      "source": "op_getMedicalRecord",
+      "target": "t_manage_medical_records",
+      "edge_type": "COMPRESSED_INTO",
+      "properties": {}
+    },
+    {
+      "id": "te_manage_pets",
+      "source": "t_manage_pets",
+      "target": "e_Pet",
+      "edge_type": "EXPOSES",
+      "properties": {}
+    },
+    {
+      "id": "te_manage_owners",
+      "source": "t_manage_owners",
+      "target": "e_Owner",
+      "edge_type": "EXPOSES",
+      "properties": {}
+    },
+    {
+      "id": "te_manage_appointments",
+      "source": "t_manage_appointments",
+      "target": "e_Appointment",
+      "edge_type": "EXPOSES",
+      "properties": {}
+    },
+    {
+      "id": "te_manage_vets",
+      "source": "t_manage_vets",
+      "target": "e_Vet",
+      "edge_type": "EXPOSES",
+      "properties": {}
+    },
+    {
+      "id": "te_manage_medical_records",
+      "source": "t_manage_medical_records",
+      "target": "e_MedicalRecord",
+      "edge_type": "EXPOSES",
+      "properties": {}
+    },
+    {
+      "id": "owns_Owner_Pet",
+      "source": "e_Owner",
+      "target": "e_Pet",
+      "edge_type": "OWNS",
+      "properties": {}
+    },
+    {
+      "id": "owns_Owner_Appointment",
+      "source": "e_Owner",
+      "target": "e_Appointment",
+      "edge_type": "OWNS",
+      "properties": {}
+    },
+    {
+      "id": "owns_Pet_MedicalRecord",
+      "source": "e_Pet",
+      "target": "e_MedicalRecord",
+      "edge_type": "OWNS",
+      "properties": {}
+    },
+    {
+      "id": "part_register_and_add_pet_createOwner",
+      "source": "op_createOwner",
+      "target": "wf_register_and_add_pet",
+      "edge_type": "PART_OF",
+      "properties": {
+        "step_index": 0
+      }
+    },
+    {
+      "id": "part_register_and_add_pet_createPet",
+      "source": "op_createPet",
+      "target": "wf_register_and_add_pet",
+      "edge_type": "PART_OF",
+      "properties": {
+        "step_index": 1
+      }
+    },
+    {
+      "id": "prec_register_and_add_pet_0",
+      "source": "op_createOwner",
+      "target": "op_createPet",
+      "edge_type": "PRECEDES",
+      "properties": {
+        "signal": "workflow"
+      }
+    },
+    {
+      "id": "part_book_vet_visit_createAppointment",
+      "source": "op_createAppointment",
+      "target": "wf_book_vet_visit",
+      "edge_type": "PART_OF",
+      "properties": {
+        "step_index": 0
+      }
+    },
+    {
+      "id": "part_book_vet_visit_createMedicalRecord",
+      "source": "op_createMedicalRecord",
+      "target": "wf_book_vet_visit",
+      "edge_type": "PART_OF",
+      "properties": {
+        "step_index": 1
+      }
+    },
+    {
+      "id": "prec_book_vet_visit_0",
+      "source": "op_createAppointment",
+      "target": "op_createMedicalRecord",
+      "edge_type": "PRECEDES",
+      "properties": {
+        "signal": "workflow"
+      }
+    }
+  ],
+  "stats": {
+    "entity_count": 5,
+    "operation_count": 19,
+    "tool_count": 5,
+    "workflow_count": 2
+  }
+};

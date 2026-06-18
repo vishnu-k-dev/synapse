@@ -60,7 +60,7 @@ significance tests (McNemar / Wilcoxon).
 
 ## Status ledger
 
-### ✅ Implemented & verified (20/20 keyless tests green)
+### ✅ Implemented & verified (22 keyless tests green + frontend MVP)
 
 | Area | Modules | Verification |
 |------|---------|--------------|
@@ -74,6 +74,8 @@ significance tests (McNemar / Wilcoxon).
 | Metrics / stats / report / store | `evalkit/{stats,report,store}.py` | 4 tests + report files emitted |
 | Orchestration + CLI | `evalkit/{experiment,cli}.py`, `run_experiment.py` | offline + live modes wired; `--help` ok |
 | Local task fixtures | `evalkit/fixtures.py` | used by offline/keyless runs |
+| **Verification layer (Phase 6)** | `evalkit/verify.py`, `scripts/verify_server.py` | per-tool round-trip + synthesis-correctness score; **caught F-1 & F-3** |
+| **Frontend explorer MVP (Phase 9)** | `frontend/explorer/` (Cytoscape, vendored) | capability graph + the **19→5 compression animation** + click-to-inspect; verified via preview |
 
 **Live integration proven up to the funded-key boundary:** the full Docker stack came up,
 migrations ran, and a real pipeline executed **discovery → extractor → graph_builder** before
@@ -103,6 +105,8 @@ Goal: external validity + cross-API generalization.
 - **Gate:** a cross-API ablation table + the same suite passing against one live API.
 
 #### Phase 6 — Research contributions: merge validity + server verification
+*Status: the server-verification layer is ✅ built & verified (it already caught F-1 and F-3);
+the merge-validity study still needs a funded key.*
 Goal: the formal, novel results.
 - [ ] Define a **merge-recoverability** metric (can the agent still invoke each merged behavior?).
 - [ ] Sweep merge aggressiveness (`compression.py` `_JACCARD_THRESHOLD`, `cluster_selection_epsilon`)
@@ -126,6 +130,8 @@ Goal: the citable artifact.
 - **Gate:** a runnable, documented benchmark release.
 
 #### Phase 9 — Frontend: Capability-Graph Explorer (Neo4j-style)  *(see overview below)*
+*Status: ◑ static MVP ✅ built & verified (`frontend/explorer/`) — renders the graph + the
+19→5 compression animation + click-to-inspect, keyless. Next.js wrap + live-wire pending.*
 Goal: the flagship UI + demo magnet (one part of the frontend, alongside upload / catalog / download).
 - [ ] Next.js app reading `GET /api/v1/graph/{app_id}`.
 - [ ] Force-directed graph (Cytoscape.js or Neo4j NVL); nodes by type, typed edges.
@@ -200,6 +206,9 @@ make that method usable; they are the path from "research engine" to "product."
 - **F-2** (worked around in harness; backend fix recommended): a failed pipeline stage leaves
   `Job.status='running'` forever (only the synthesizer sets `complete`), so failures look like
   hangs. The harness now fails fast on a failed stage event.
+- **F-3** (fixed): generated tools crashed on 204 / empty / non-JSON responses (every DELETE)
+  because the template unconditionally called `response.json()`. Caught by the Phase 6
+  verification layer; fixed in the template (empty → status dict, non-JSON → `{"text": ...}`).
 
 ---
 

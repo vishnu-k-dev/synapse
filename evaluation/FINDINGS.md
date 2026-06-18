@@ -57,3 +57,32 @@ with the failing stage's `error_message`, turning a 600s hang into an instant, a
 `error_message` when a stage raises `StageError` (e.g. in `tasks/pipeline.py` task error
 handlers, or a chain error callback). Then `/jobs/{id}` reflects terminal failure directly.
 
+---
+
+## F-3 — Generated tools crash on 204 / empty / non-JSON responses
+
+**Severity:** blocking for any DELETE (and empty-200) endpoint.
+**Surfaced by:** the Phase 6 verification layer (`scripts/verify_server.py`) — `delete_pet` failed.
+**Status:** fixed in the synthesizer template.
+
+**What.** The template ended every tool with `return response.json()`. A `DELETE` returning
+**204 No Content** (empty body) — or any endpoint returning an empty / non-JSON body — makes
+`response.json()` raise `JSONDecodeError: Expecting value: line 1 column 1`. Same root class as
+F-1: the generated server assumes every response is a JSON object.
+
+**Fix.** `backend/app/templates/python_mcp/server.py.j2`: after `raise_for_status()`, return a
+status dict for empty bodies and fall back to `{"text": ...}` for non-JSON:
+```python
+response.raise_for_status()
+if not response.content:
+    return {"status_code": response.status_code}
+try:
+    return response.json()
+except ValueError:
+    return {"text": response.text}
+```
+
+**Note.** This is the verification layer (Phase 6) doing exactly its job — catching a latent
+synthesis-correctness bug the existing tests never could, because they never ran the server.
+
+

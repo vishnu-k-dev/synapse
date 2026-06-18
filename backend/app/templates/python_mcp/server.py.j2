@@ -41,7 +41,12 @@ async def {{ tool.name }}(
 {% if tool.has_body %}        json=_body,
 {% endif %}    )
     response.raise_for_status()
-    return response.json()
+    if not response.content:
+        return {"status_code": response.status_code}
+    try:
+        return response.json()
+    except ValueError:
+        return {"text": response.text}
 
 {% endfor %}
 
