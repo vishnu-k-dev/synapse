@@ -80,18 +80,118 @@ migrations ran, and a real pipeline executed **discovery → extractor → graph
 hitting the OpenAI account quota limit (see Findings F-2). Infra + harness integration are
 confirmed working against the real backend.
 
-### ⬜ Not yet implemented (remaining roadmap)
+### ⬜ Not yet implemented — phased roadmap
 
-| Phase | Work | Notes / blocker |
-|-------|------|------|
-| **Run** | Execute the 2×2 ablation to produce the headline numbers + curve | **Blocked only on a funded OpenAI key.** One command once available. |
-| 1 (rest) | Real-API adapter (`evalkit/sandbox/real_adapter.py`) for hybrid external validity (e.g. Petstore live) | code stub-ready |
-| 3.5 | Generic spec→naive-tools builder so **offline** mode produces a faithful C1 baseline | currently offline uses a Petstore fixture |
-| 4 | Scale to 3–4 APIs (Stripe/GitHub/Jira) + per-API task suites (~40 tasks each) | needs specs + suites |
-| 5 | **Tool-merge validity study**: merge-recoverability metric, sweep `_JACCARD_THRESHOLD` / `cluster_selection_epsilon`, compression-vs-correctness Pareto frontier | the formal research contribution |
-| 5 | **Generated-server verification layer** (hypothesis property tests) — generalize F-1 | catches synthesis-correctness bugs |
-| 6 | **Task-aware compression**: mine tool co-occurrence from transcripts, feed back as a re-clustering signal | the only backend change; highest novelty |
-| 7 | **Benchmark packaging** + paper-ready figures/writeup | the citable artifact |
+Sequential phases, each with a **gate** (a concrete "done when") so they can be tackled one
+after another. Phases 0–3 (harness foundations) are complete; the work continues at Phase 4.
+
+#### Phase 4 — First ablation result  ⟵ *immediate next; blocked only on a funded OpenAI key*
+Goal: the headline finding — does semantic compression improve agent success?
+- [ ] Fund the OpenAI account (embeddings for the pipeline + GPT-4o for the agent).
+- [ ] Validation run: `run_experiment.py --mode live --conditions C1_naive,C4_full --repeats 1`.
+- [ ] Full 2×2: 4 conditions × 8 tasks × 3 repeats on Petstore.
+- [ ] Review `report.md` + `ablation_curve.png`.
+- **Gate:** a published ablation table + curve (success rate & tool-calls vs condition) with
+  bootstrap CIs and McNemar/Wilcoxon significance.
+
+#### Phase 5 — Faithful baselines & broader coverage
+Goal: external validity + cross-API generalization.
+- [ ] Generic spec→naive-tools builder so **offline** mode yields a faithful C1 (today it uses a fixture).
+- [ ] Real-API adapter (`evalkit/sandbox/real_adapter.py`) — e.g. Petstore live — for hybrid validity.
+- [ ] Add 3 APIs (Stripe / GitHub / Jira) + per-API task suites (~40 tasks each).
+- [ ] Re-run the 2×2 across all APIs.
+- **Gate:** a cross-API ablation table + the same suite passing against one live API.
+
+#### Phase 6 — Research contributions: merge validity + server verification
+Goal: the formal, novel results.
+- [ ] Define a **merge-recoverability** metric (can the agent still invoke each merged behavior?).
+- [ ] Sweep merge aggressiveness (`compression.py` `_JACCARD_THRESHOLD`, `cluster_selection_epsilon`)
+      → plot the **compression-vs-correctness Pareto frontier**.
+- [ ] Replace the hard-coded `0.4` threshold with the *measured* criterion.
+- [ ] Hypothesis-based **verification layer** generalizing F-1 → per-API synthesis-correctness score.
+- **Gate:** a Pareto plot, a principled merge criterion, and a correctness score per API.
+
+#### Phase 7 — Task-aware compression  *(only backend change; highest novelty, highest risk)*
+Goal: usage-driven compression beats structural-only.
+- [ ] Mine tool co-occurrence + usage frequency from eval transcripts.
+- [ ] Feed back as a re-clustering / workflow signal behind a new `PipelineConfig` flag.
+- [ ] Ablate usage-aware vs structural-only on the same tasks.
+- **Gate:** a measured improvement (or a documented null result).
+
+#### Phase 8 — Benchmark packaging + writeup
+Goal: the citable artifact.
+- [ ] Package suites + harness + sandbox + leaderboard format as a named benchmark.
+- [ ] `make benchmark` entrypoint + paper-ready figures/tables.
+- [ ] README / paper framing ("tool-set design as an axis of agent performance").
+- **Gate:** a runnable, documented benchmark release.
+
+#### Phase 9 — Frontend: Capability-Graph Explorer (Neo4j-style)  *(see overview below)*
+Goal: the flagship UI + demo magnet (one part of the frontend, alongside upload / catalog / download).
+- [ ] Next.js app reading `GET /api/v1/graph/{app_id}`.
+- [ ] Force-directed graph (Cytoscape.js or Neo4j NVL); nodes by type, typed edges.
+- [ ] The **"92 → 18" compression animation** (Operations collapsing into Tools; Workflow paths lighting up).
+- [ ] Click-to-inspect tools/workflows + inline curation via the existing `PATCH` endpoints.
+- [ ] **"Run agent on this tool-set"** → triggers the harness, renders metrics inline.
+- [ ] Sample capability-graph fixture for a keyless demo.
+- **Gate:** the explorer runs (live or from fixture) with the compression animation + run-eval loop.
+
+#### Phase 10 — Platform (Composio-style)  *(see overview below)*
+Goal: research engine → usable product.
+- [ ] Connected-accounts / auth management (build on the AES-256 `auth_credentials_encrypted` bones).
+- [ ] Hosted MCP serving (managed always-on endpoint; stdio + HTTP/SSE).
+- [ ] Permission governance — role-scoped tool surfaces (build on `permission_scope`).
+- [ ] Tool-call observability — telemetry + dashboards (extend `llm_call_log`).
+- [ ] Tool catalog + versioning; triggers/webhooks; framework adapters (OpenAI / LangChain / CrewAI).
+- **Gate:** a generated MCP server can be hosted, authed, scoped, and observed through the UI.
+
+### Frontend & platform — toward a Composio-style product (detail for Phases 9–10)
+
+Today SYNAPSE is a backend engine + an evaluation harness. To become a usable product (and a
+compelling open-source project) it needs a **frontend** and the **managed-platform** capabilities
+that tools like Composio provide. This is the largest unbuilt area — but much of the backend API
+and data model needed for it already exists.
+
+**Part A — Capability-Graph Explorer (the Neo4j-style interface).** The flagship UI surface and a
+core differentiator: no competitor *shows you the tool surface being designed*. The Capability
+Graph already lives in Neo4j and is exposed via `GET /api/v1/graph/{app_id}` (plus `PATCH` to edit
+nodes / tools / workflows), so this is a visualization layer over data that already exists. It is
+**one part of the frontend** (alongside the spec-upload flow, the tool catalog, and the generated
+MCP-server download/deploy panel).
+- Interactive, force-directed graph (Neo4j Bloom-style): nodes colored by type — `Entity` /
+  `Operation` / `Tool` / `Workflow`; edges for `OWNS` / `OPERATES_ON` / `COMPRESSED_INTO` /
+  `PRECEDES` / `PART_OF`.
+- **The "92 → 18" compression view** (the demo money-shot): animate raw `Operation` nodes
+  collapsing along `COMPRESSED_INTO` edges into `Tool` nodes; `Workflow` nodes light up their
+  `PRECEDES` path.
+- Click-to-inspect: a `Tool` shows its unified schema, member endpoints, and confidence; a
+  `Workflow` shows its ordered steps.
+- Human-in-the-loop curation: rename canonical names, reassign entity/action, merge/split tools —
+  wired to the existing `PATCH` endpoints.
+- **"Run agent on this tool-set"** → triggers the evaluation harness and renders success rate /
+  tool-calls inline, closing the design → measure loop in one screen.
+- Tech: Next.js + a graph lib (Cytoscape.js — already the intended stack; or Neo4j's **NVL** for a
+  true Bloom feel). Can render from a sample capability-graph fixture so it demos with no live pipeline.
+
+**Part B — Managed agent-tooling platform (Composio-style capabilities).** Turn the generated MCP
+server from a downloadable file into a hosted, governed service. Several pieces already have
+backend bones:
+- **Connected accounts & auth management** — OAuth2 / API-key flows, per-user/per-tenant credential
+  vaulting, token refresh. *Bones:* `Application.auth_credentials_encrypted` (AES-256) + `auth_type`.
+- **Hosted tool serving** — run each generated MCP server as a managed always-on endpoint
+  (stdio + HTTP/SSE), instead of a file the user self-hosts.
+- **Permission scoping & governance** — role-scoped, least-privilege tool surfaces per agent/user.
+  *Bones:* `permission_scope` on `Tool` nodes + permission-aware filtering in the synthesizer.
+- **Observability** — per-tool-call telemetry (args, latency, errors, cost) + dashboards.
+  *Bones:* `llm_call_log` (extend to a tool-call log).
+- **Tool catalog & versioning** — browse/curate tool sets, version and roll back; a multi-app
+  integration directory like Composio's.
+- **Triggers / webhooks** — event-driven tool invocation.
+- **Framework adapters** — one-line export to OpenAI tools / LangChain / CrewAI / Anthropic MCP clients.
+
+**Positioning.** SYNAPSE's edge over Composio-style platforms is the *generation method*: Composio
+hand-curates tools per app; SYNAPSE **auto-synthesizes a compressed, workflow-aware tool surface
+from any spec** — and, via the harness, can *prove* the surface is better. The platform features
+make that method usable; they are the path from "research engine" to "product."
 
 ### 🔧 Findings (see [evaluation/FINDINGS.md](evaluation/FINDINGS.md))
 - **F-1** (fixed): generated servers crashed on every list/collection tool (`-> dict` + array
