@@ -1,0 +1,261 @@
+{
+  "generated_at": "2026-06-18T19:09:37+00:00",
+  "scenarios": [
+    {
+      "id": "register_pet",
+      "title": "Register owner + add their dog",
+      "user": "Register a new owner, Carol (carol@example.com), and add a dog named Max that belongs to her.",
+      "variants": {
+        "naive": {
+          "label": "Naive \u00b7 1 tool / endpoint",
+          "tool_count": 17,
+          "plan": "Let me look Carol up, then create what's missing and link the pet.",
+          "steps": [
+            {
+              "tool": "get_owner",
+              "args": {
+                "owner_id": "owners_1"
+              },
+              "response": {
+                "error": "Error calling tool 'get_owner': Client error '404 Not Found' for url 'http://127.0.0.1:54479/owners/owners_1'\nFor more information check: https://developer.mozi"
+              },
+              "ok": false,
+              "ms": 152
+            },
+            {
+              "tool": "create_owner",
+              "args": {
+                "name": "Carol",
+                "email": "carol@example.com"
+              },
+              "response": {
+                "name": "Carol",
+                "email": "carol@example.com",
+                "id": "owners_1"
+              },
+              "ok": true,
+              "ms": 9
+            },
+            {
+              "tool": "create_pet",
+              "args": {
+                "name": "Max",
+                "species": "dog",
+                "owner_id": "owners_1"
+              },
+              "response": {
+                "name": "Max",
+                "species": "dog",
+                "owner_id": "owners_1",
+                "id": "pets_1"
+              },
+              "ok": true,
+              "ms": 6
+            },
+            {
+              "tool": "get_pet",
+              "args": {
+                "pet_id": "pets_1"
+              },
+              "response": {
+                "name": "Max",
+                "species": "dog",
+                "owner_id": "owners_1",
+                "id": "pets_1"
+              },
+              "ok": true,
+              "ms": 5
+            }
+          ],
+          "calls": 4,
+          "errors": 1,
+          "success": true,
+          "final": "Done \u2713 Carol is registered and Max is linked to her account."
+        },
+        "synapse": {
+          "label": "SYNAPSE \u00b7 compressed",
+          "tool_count": 5,
+          "plan": "Create the owner, then the pet using the id she's assigned.",
+          "steps": [
+            {
+              "tool": "manage_owners",
+              "args": {
+                "name": "Carol",
+                "email": "carol@example.com"
+              },
+              "response": {
+                "name": "Carol",
+                "email": "carol@example.com",
+                "id": "owners_1"
+              },
+              "ok": true,
+              "ms": 8
+            },
+            {
+              "tool": "manage_pets",
+              "args": {
+                "name": "Max",
+                "species": "dog",
+                "owner_id": "owners_1"
+              },
+              "response": {
+                "name": "Max",
+                "species": "dog",
+                "owner_id": "owners_1",
+                "id": "pets_1"
+              },
+              "ok": true,
+              "ms": 5
+            }
+          ],
+          "calls": 2,
+          "errors": 0,
+          "success": true,
+          "final": "Done \u2713 Carol is registered and Max is linked to her account."
+        }
+      }
+    },
+    {
+      "id": "vet_visit",
+      "title": "Add a pet, book a vet visit, file the record",
+      "user": "Add a dog named Buddy, book it a checkup with vet vet_3, then file the medical record.",
+      "badge": "workflow",
+      "variants": {
+        "naive": {
+          "label": "Naive \u00b7 1 tool / endpoint",
+          "tool_count": 17,
+          "plan": "Find a vet, create the pet, set up the appointment, then record the visit.",
+          "steps": [
+            {
+              "tool": "list_vets",
+              "args": {},
+              "response": "",
+              "ok": true,
+              "ms": 6
+            },
+            {
+              "tool": "create_pet",
+              "args": {
+                "name": "Buddy",
+                "species": "dog"
+              },
+              "response": {
+                "name": "Buddy",
+                "species": "dog",
+                "id": "pets_1"
+              },
+              "ok": true,
+              "ms": 4
+            },
+            {
+              "tool": "get_appointment",
+              "args": {
+                "appointment_id": "appointments_1"
+              },
+              "response": {
+                "error": "Error calling tool 'get_appointment': Client error '404 Not Found' for url 'http://127.0.0.1:54614/appointments/appointments_1'\nFor more information check: http"
+              },
+              "ok": false,
+              "ms": 176
+            },
+            {
+              "tool": "create_appointment",
+              "args": {
+                "pet_id": "pets_1",
+                "vet_id": "vet_3",
+                "date": "2026-06-20"
+              },
+              "response": {
+                "pet_id": "pets_1",
+                "vet_id": "vet_3",
+                "date": "2026-06-20",
+                "id": "appointments_1"
+              },
+              "ok": true,
+              "ms": 5
+            },
+            {
+              "tool": "create_medical_record",
+              "args": {
+                "pet_id": "pets_1",
+                "vet_id": "vet_3",
+                "diagnosis": "Routine checkup \u2014 healthy",
+                "appointment_id": "appointments_1"
+              },
+              "response": {
+                "pet_id": "pets_1",
+                "vet_id": "vet_3",
+                "diagnosis": "Routine checkup \u2014 healthy",
+                "appointment_id": "appointments_1",
+                "id": "medical-records_1"
+              },
+              "ok": true,
+              "ms": 6
+            }
+          ],
+          "calls": 5,
+          "errors": 1,
+          "success": true,
+          "final": "Done \u2713 Buddy is booked with vet_3 and the visit is on record."
+        },
+        "synapse": {
+          "label": "SYNAPSE \u00b7 compressed",
+          "tool_count": 5,
+          "plan": "Add the pet, book the appointment, then file the record \u2014 the book_vet_visit workflow.",
+          "steps": [
+            {
+              "tool": "manage_pets",
+              "args": {
+                "name": "Buddy",
+                "species": "dog"
+              },
+              "response": {
+                "name": "Buddy",
+                "species": "dog",
+                "id": "pets_1"
+              },
+              "ok": true,
+              "ms": 6
+            },
+            {
+              "tool": "manage_appointments",
+              "args": {
+                "pet_id": "pets_1",
+                "vet_id": "vet_3",
+                "date": "2026-06-20"
+              },
+              "response": {
+                "pet_id": "pets_1",
+                "vet_id": "vet_3",
+                "date": "2026-06-20",
+                "id": "appointments_1"
+              },
+              "ok": true,
+              "ms": 4
+            },
+            {
+              "tool": "manage_medical_records",
+              "args": {
+                "pet_id": "pets_1",
+                "vet_id": "vet_3",
+                "diagnosis": "Routine checkup \u2014 healthy"
+              },
+              "response": {
+                "pet_id": "pets_1",
+                "vet_id": "vet_3",
+                "diagnosis": "Routine checkup \u2014 healthy",
+                "id": "medical-records_1"
+              },
+              "ok": true,
+              "ms": 4
+            }
+          ],
+          "calls": 3,
+          "errors": 0,
+          "success": true,
+          "final": "Done \u2713 Buddy is booked with vet_3 and the visit is on record."
+        }
+      }
+    }
+  ]
+}

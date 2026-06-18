@@ -9,37 +9,48 @@
 <body>
   <header id="hdr">
     <span class="logo">SYNAPSE</span>
-    <span class="tagline">Live Console</span>
+    <span class="tagline">Live Console — naive vs SYNAPSE, side by side</span>
     <span class="flow-pill"><b>Agent</b> ⇄ <b>MCP</b> ⇄ <b>API</b></span>
     <nav class="nav"><a href="index.html">◹ Capability Graph</a></nav>
   </header>
 
-  <div id="app">
-    <section id="left">
-      <div id="tasks">
-        <div class="lbl">Try a task — watch the agent use SYNAPSE's tools</div>
-        <div id="chiplist"></div>
-      </div>
-      <div id="chat">
-        <div class="msg assistant"><div class="who">SYNAPSE</div>Pick a task above and I'll drive the agent against the generated MCP tools — you'll see each <code>tools/call</code> fire against the API.</div>
-      </div>
-    </section>
+  <div id="tasks">
+    <span class="lbl">Run a task</span>
+    <div id="chiplist" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+  </div>
 
-    <section id="right">
-      <div id="stage">
-        <div class="stage-tag">MCP tool fabric</div>
-        <div id="cy"></div>
-        <div id="metrics"></div>
-      </div>
-      <div id="wire">
-        <div class="wh"><span class="live"></span> MCP wire — JSON-RPC frames</div>
-        <div id="wirelog"></div>
-      </div>
-    </section>
+  <div id="body">
+    <div id="stage">
+      <div class="stage-tag">SYNAPSE MCP fabric</div>
+      <div id="cy"></div>
+    </div>
+
+    <div id="prompt"><span class="you">You</span><span class="ptext"></span></div>
+
+    <div id="lanes">
+      <section class="lane naive">
+        <div class="lane-head">
+          <span class="lane-title">Naive MCP</span>
+          <span class="count-badge">— tools</span>
+          <span class="lane-status"></span>
+        </div>
+        <div class="lane-body"></div>
+      </section>
+      <section class="lane synapse">
+        <div class="lane-head">
+          <span class="lane-title">SYNAPSE</span>
+          <span class="count-badge">— tools</span>
+          <span class="lane-status"></span>
+        </div>
+        <div class="lane-body"></div>
+      </section>
+    </div>
+
+    <div id="verdict"></div>
   </div>
 
   <script src="vendor/cytoscape.min.js"></script>
-  <script src="scenarios.js"></script>
+  <script src="transcripts.js"></script>
   <script src="console.js"></script>
 </body>
 </html>

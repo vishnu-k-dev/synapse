@@ -1,182 +1,174 @@
-/* SYNAPSE Live Console — visualize an agent using the MCP tools.
+/* SYNAPSE Live Console v2 — replays REAL recorded agent sessions, naive vs SYNAPSE.
  *
- * Drives a deterministic agent session (from scenarios.js): streams the chat + tool-call cards,
- * pulses the tool nodes, flies particles Agent -> Tool -> API, and logs the raw MCP JSON-RPC
- * frames on the wire panel. No backend / key — a recorded-style replay matching sandbox semantics.
+ * Data: window.TRANSCRIPTS (from scripts/record_transcripts.py) — genuine MCP round-trips
+ * against the real generated servers + sandbox (incl. real 404 fumbles on the naive surface).
+ * Both lanes replay in parallel; the SYNAPSE lane drives the MCP-fabric graph (pulses +
+ * particles Agent -> Tool -> API). A verdict bar quantifies the difference.
  */
 (function () {
+  const T = window.TRANSCRIPTS;
   const TOOLS = ["manage_owners", "manage_pets", "manage_appointments", "manage_medical_records", "manage_vets"];
-  const C = { agent: "#6ea8fe", tool: "#54A24B", api: "#b18cf2", particle: "#ffd166" };
+  const C = { agent: "#6ea8fe", tool: "#5bd17b", api: "#b18cf2", particle: "#ffd166", ring: "#ffd166" };
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const $ = s => document.querySelector(s);
 
-  // ── build the MCP "fabric": Agent ──(mcp)── Tools ──(http)── API hub ──
+  // ── MCP fabric graph: Agent ──(mcp)── Tools ──(http)── API ──
   const nodes = [
-    { data: { id: "agent", label: "🤖 Agent", kind: "agent" }, position: { x: -340, y: 0 } },
-    { data: { id: "api", label: "🔌 API", kind: "api" }, position: { x: 340, y: 0 } },
+    { data: { id: "agent", label: "🤖 Agent", kind: "agent" }, position: { x: -330, y: 0 } },
+    { data: { id: "api", label: "🔌 Sandbox API", kind: "api" }, position: { x: 330, y: 0 } },
   ];
   const edges = [];
   TOOLS.forEach((t, i) => {
-    const y = (i - (TOOLS.length - 1) / 2) * 95;
-    nodes.push({ data: { id: t, label: t, kind: "tool" }, position: { x: 0, y } });
+    nodes.push({ data: { id: t, label: t, kind: "tool" }, position: { x: 0, y: (i - 2) * 78 } });
     edges.push({ data: { id: "a_" + t, source: "agent", target: t, kind: "mcp" } });
     edges.push({ data: { id: "h_" + t, source: t, target: "api", kind: "http" } });
   });
 
   const cy = cytoscape({
-    container: document.getElementById("cy"),
-    elements: [...nodes, ...edges],
-    layout: { name: "preset" },
-    userZoomingEnabled: false, userPanningEnabled: false, autoungrabify: true,
+    container: $("#cy"), elements: [...nodes, ...edges], layout: { name: "preset" },
+    userZoomingEnabled: false, userPanningEnabled: false, autoungrabify: true, autounselectify: true,
     style: [
-      { selector: "node", style: {
-          "label": "data(label)", "color": "#e8ecf4", "font-size": 12, "font-weight": 600,
-          "text-valign": "center", "text-halign": "center", "text-outline-color": "#0b0e16",
-          "text-outline-width": 3, "width": 54, "height": 54,
-          "background-color": e => C[e.data("kind")] || "#888" } },
-      { selector: 'node[kind="agent"]', style: { "width": 78, "height": 78, "shape": "round-rectangle" } },
-      { selector: 'node[kind="api"]', style: { "width": 90, "height": 90, "shape": "round-rectangle",
-          "background-color": C.api, "border-width": 2, "border-color": "rgba(177,140,242,.5)" } },
-      { selector: 'node[kind="tool"]', style: { "shape": "round-rectangle", "width": 72, "height": 50, "font-family": "ui-monospace, Menlo, monospace", "font-size": 10 } },
-      { selector: 'node[kind="particle"]', style: { "width": 14, "height": 14, "background-color": C.particle,
-          "border-width": 0, "label": "", "z-index": 99 } },
-      { selector: "edge", style: { "width": 1.4, "line-color": "rgba(255,255,255,.12)",
-          "curve-style": "bezier", "target-arrow-shape": "none" } },
+      { selector: "node", style: { label: "data(label)", color: "#eaeef7", "font-size": 11, "font-weight": 600,
+          "text-valign": "center", "text-halign": "center", "text-outline-color": "#090c14", "text-outline-width": 3,
+          width: 50, height: 50, "background-color": e => C[e.data("kind")] || "#888" } },
+      { selector: 'node[kind="agent"]', style: { width: 76, height: 60, shape: "round-rectangle" } },
+      { selector: 'node[kind="api"]', style: { width: 96, height: 70, shape: "round-rectangle",
+          "border-width": 2, "border-color": "rgba(177,140,242,.55)" } },
+      { selector: 'node[kind="tool"]', style: { shape: "round-rectangle", width: 78, height: 46,
+          "font-family": "ui-monospace, Menlo, monospace", "font-size": 10,
+          "border-width": 1, "border-color": "rgba(91,209,123,.35)" } },
+      { selector: 'node[kind="particle"]', style: { width: 13, height: 13, "background-color": C.particle,
+          "border-width": 0, label: "", "z-index": 99 } },
+      { selector: 'node[kind="ring"]', style: { "background-opacity": 0, "border-width": 2,
+          "border-color": C.ring, "border-opacity": 0.9, label: "", "z-index": 50 } },
+      { selector: "edge", style: { width: 1.3, "line-color": "rgba(255,255,255,.10)", "curve-style": "bezier",
+          "target-arrow-shape": "none" } },
       { selector: 'edge[kind="mcp"]', style: { "line-style": "dashed" } },
-      { selector: ".firing", style: { "line-color": C.gold || "#ffd166", "width": 3 } },
+      { selector: ".firing", style: { "line-color": C.particle, width: 3, "line-style": "solid" } },
     ],
   });
-  cy.fit(undefined, 55);
-  window.addEventListener("resize", () => cy.fit(undefined, 55));
+  const fit = () => cy.fit(undefined, 48);
+  fit(); window.addEventListener("resize", fit);
 
-  // ── helpers ──
-  const $ = sel => document.querySelector(sel);
-  const chat = $("#chat"), wire = $("#wirelog"), metrics = $("#metrics");
-  const sleep = ms => new Promise(r => setTimeout(r, ms));
-
-  function scrollDown(el) { el.scrollTop = el.scrollHeight; }
-
-  function addMsg(role, who, text, cls) {
-    const d = document.createElement("div");
-    d.className = `msg ${role}${cls ? " " + cls : ""}`;
-    d.innerHTML = `<div class="who">${who}</div><span class="body"></span>`;
-    chat.appendChild(d); scrollDown(chat);
-    return d.querySelector(".body");
-  }
-  async function type(el, text, speed = 12) {
-    for (let i = 1; i <= text.length; i++) { el.textContent = text.slice(0, i); if (i % 3 === 0) scrollDown(chat); await sleep(speed); }
-  }
-
-  function toolCard(tool, args) {
-    const c = document.createElement("div");
-    c.className = "toolcard";
-    c.innerHTML =
-      `<div class="tc-head"><span>⇢</span><span class="tc-name">${tool}</span>
-         <span class="tc-status"><span class="spinner"></span> calling…</span></div>
-       <pre class="tc-args">${pretty(args)}</pre>`;
-    chat.appendChild(c); scrollDown(chat);
-    return c;
-  }
-  function cardResolve(card, response, ms) {
-    card.classList.add("ok");
-    card.querySelector(".tc-status").innerHTML = `<span class="dotok">●</span> 200 OK · ${ms}ms`;
-    const r = document.createElement("pre");
-    r.className = "tc-resp"; r.textContent = pretty(response);
-    card.appendChild(r); scrollDown(chat);
-  }
-
-  function pretty(o) { return JSON.stringify(o, null, 2); }
-
-  function wireFrame(kind, obj) {
-    const f = document.createElement("div");
-    f.className = "frame " + kind;
-    const dir = kind === "req" ? "▶ tools/call" : "◀ result";
-    f.innerHTML = `<span class="dir">${dir}</span> ` + colorJSON(obj);
-    wire.appendChild(f); scrollDown(wire);
-  }
-  function colorJSON(o) {
-    return JSON.stringify(o)
-      .replace(/"([^"]+)":/g, '<span class="k">"$1"</span>:')
-      .replace(/:"([^"]*)"/g, ':<span class="s">"$1"</span>');
-  }
-
-  // graph fx
+  // ── graph fx (tuned) ──
   function pulse(id) {
-    const n = cy.getElementById(id);
-    n.animate({ style: { "background-color": C.particle, "width": n.width() + 14, "height": n.height() + 10 } }, { duration: 220,
-      complete: () => n.animate({ style: { "background-color": C.tool, "width": n.width() - 14, "height": n.height() - 10 } }, { duration: 420 }) });
+    const n = cy.getElementById(id); if (n.empty()) return;
+    n.animate({ style: { "background-color": C.particle, width: 92, height: 56, "border-color": C.particle } }, { duration: 200,
+      complete: () => n.animate({ style: { "background-color": C.tool, width: 78, height: 46, "border-color": "rgba(91,209,123,.35)" } }, { duration: 460 }) });
+    ring(id);
+  }
+  function ring(id) {
+    const p = cy.getElementById(id).position();
+    const r = cy.add({ group: "nodes", data: { id: "r" + Math.random().toString(36).slice(2), kind: "ring" }, position: { ...p } });
+    r.style({ width: 40, height: 40 });
+    r.animate({ style: { width: 120, height: 120, "border-opacity": 0 } }, { duration: 620, complete: () => r.remove() });
   }
   function particle(fromId, toId) {
     return new Promise(res => {
-      const id = "p" + Math.random().toString(36).slice(2);
       const from = cy.getElementById(fromId).position();
+      const id = "p" + Math.random().toString(36).slice(2);
       cy.add({ group: "nodes", data: { id, kind: "particle" }, position: { ...from } });
       cy.getElementById(id).animate({ position: cy.getElementById(toId).position() },
-        { duration: 480, easing: "ease-in-out-cubic", complete() { cy.getElementById(id).remove(); res(); } });
+        { duration: 360, easing: "ease-in-out-cubic", complete() { cy.getElementById(id).remove(); res(); } });
     });
   }
-  function fireEdge(id) {
-    const e = cy.getElementById(id); e.addClass("firing");
-    setTimeout(() => e.removeClass("firing"), 700);
+  function fire(id) { const e = cy.getElementById(id); if (e.empty()) return; e.addClass("firing"); setTimeout(() => e.removeClass("firing"), 620); }
+
+  async function graphCall(tool) {
+    fire("a_" + tool); await particle("agent", tool);
+    pulse(tool); fire("h_" + tool); await particle(tool, "api");
+    await sleep(140); await particle("api", tool);
   }
 
-  // ── run a scenario ──
-  let running = false;
-  async function run(s) {
-    if (running) return;
-    running = true;
-    setChips(true);
-    chat.innerHTML = ""; wire.innerHTML = ""; metrics.className = "";
-    const t0 = performance.now();
+  // ── DOM helpers ──
+  const pretty = o => JSON.stringify(o, null, 2);
+  function bubble(laneBody, cls, text) {
+    const d = document.createElement("div"); d.className = "bubble " + cls;
+    laneBody.appendChild(d); laneBody.scrollTop = laneBody.scrollHeight;
+    return type(d, text);
+  }
+  async function type(el, text, speed = 7) {
+    for (let i = 1; i <= text.length; i++) { el.textContent = text.slice(0, i); if (i % 4 === 0) el.parentElement.scrollTop = el.parentElement.scrollHeight; await sleep(speed); }
+  }
+  function toolCard(laneBody, step) {
+    const c = document.createElement("div"); c.className = "tcard";
+    c.innerHTML = `<div class="h"><span class="mc">▶ tools/call</span><span class="nm">${step.tool}</span>
+        <span class="st"><span class="spinner"></span> calling…</span></div>
+      <pre>${pretty(step.args)}</pre>`;
+    laneBody.appendChild(c); laneBody.scrollTop = laneBody.scrollHeight;
+    return c;
+  }
+  function resolveCard(c, step) {
+    const ok = step.ok;
+    c.classList.add(ok ? "ok" : "err");
+    c.querySelector(".st").innerHTML = ok ? `● 200 OK · ${step.ms}ms` : `✗ error · ${step.ms}ms`;
+    const r = document.createElement("pre"); r.className = "resp";
+    r.textContent = ok ? pretty(step.response) : (step.response.error || "request failed");
+    c.appendChild(r); c.parentElement.scrollTop = c.parentElement.scrollHeight;
+  }
 
-    await type(addMsg("user", "You", ""), s.user, 8);
-    await sleep(250);
-    await type(addMsg("assistant", "Agent · planning", ""), s.plan, 9);
-    await sleep(300);
-
-    const used = new Set();
-    for (const step of s.steps) {
-      used.add(step.tool);
-      const card = toolCard(step.tool, step.args);
-      wireFrame("req", { jsonrpc: "2.0", id: used.size, method: "tools/call",
-        params: { name: step.tool, arguments: step.args } });
-      fireEdge("a_" + step.tool);
-      await particle("agent", step.tool);
-      pulse(step.tool);
-      fireEdge("h_" + step.tool);
-      await particle(step.tool, "api");
-      await sleep(220);
-      const ms = 40 + Math.floor(Math.random() * 90);
-      await particle("api", step.tool);
-      cardResolve(card, step.response, ms);
-      wireFrame("res", { jsonrpc: "2.0", id: used.size, result: step.response });
-      await particle(step.tool, "agent");
-      await sleep(300);
+  // ── replay one lane ──
+  async function replayLane(laneSel, variant, driveGraph) {
+    const lane = $(laneSel), body = lane.querySelector(".lane-body");
+    lane.querySelector(".count-badge").textContent = `${variant.tool_count} tools`;
+    lane.querySelector(".lane-status").textContent = "running…";
+    body.innerHTML = "";
+    await bubble(body, "plan", variant.plan);
+    await sleep(200);
+    for (const step of variant.steps) {
+      const card = toolCard(body, step);
+      if (driveGraph && TOOLS.includes(step.tool)) await graphCall(step.tool);
+      else await sleep(420);
+      await sleep(160);
+      resolveCard(card, step);
+      await sleep(step.ok ? 360 : 220);
     }
+    await bubble(body, "final", variant.final);
+    lane.querySelector(".lane-status").innerHTML =
+      `${variant.calls} calls · ${variant.errors} err · ${variant.success ? "✓ done" : "✗ failed"}`;
+  }
 
-    await type(addMsg("assistant", "Agent", "", "final"), s.final, 8);
+  // ── verdict ──
+  function showVerdict(sc) {
+    const n = sc.variants.naive, s = sc.variants.synapse;
+    const callX = (n.calls / s.calls).toFixed(1);
+    const toolX = (n.tool_count / s.tool_count).toFixed(1);
+    const v = $("#verdict");
+    v.innerHTML =
+      `<span class="v"><span class="tag naive">Naive</span><span class="nums">${n.tool_count} tools · ${n.calls} calls · ${n.errors} error${n.errors !== 1 ? "s" : ""}</span></span>
+       <span class="win">SYNAPSE: ${toolX}× smaller surface · ${callX}× fewer calls · no fumbling</span>
+       <span class="v"><span class="tag synapse">SYNAPSE</span><span class="nums">${s.tool_count} tools · ${s.calls} calls · ${s.errors} errors</span></span>`;
+    v.className = "show";
+  }
 
-    const elapsed = ((performance.now() - t0) / 1000).toFixed(1);
-    metrics.innerHTML =
-      `<span class="ok">✓ completed</span> · <b>${s.steps.length}</b> MCP calls · ` +
-      `<b>${used.size}</b> tool${used.size > 1 ? "s" : ""} · ${elapsed}s ` +
-      `&nbsp;·&nbsp; <span class="save">naive surface would fumble ~${s.naiveCalls} calls</span>`;
-    metrics.className = "show";
+  // ── run a scenario (both lanes in parallel) ──
+  let running = false;
+  async function run(sc) {
+    if (running) return; running = true;
+    document.querySelectorAll(".chip").forEach(c => (c.disabled = true));
+    $("#verdict").className = "";
+    const pr = $("#prompt"); pr.className = "show"; pr.querySelector(".ptext").textContent = "";
+    await type(pr.querySelector(".ptext"), sc.user, 6);
+    await sleep(250);
+    await Promise.all([
+      replayLane(".lane.naive", sc.variants.naive, false),
+      replayLane(".lane.synapse", sc.variants.synapse, true),
+    ]);
+    showVerdict(sc);
     running = false;
-    setChips(false);
+    document.querySelectorAll(".chip").forEach(c => (c.disabled = false));
   }
 
-  function setChips(disabled) {
-    document.querySelectorAll(".chip").forEach(c => (c.disabled = disabled));
+  // ── chips ──
+  if (!T || !T.scenarios) {
+    $("#chiplist").innerHTML = '<span style="color:#8b97ad">No transcripts.json — run scripts/record_transcripts.py</span>';
+    return;
   }
-
-  // ── task chips ──
-  const chiplist = document.getElementById("chiplist");
-  window.SCENARIOS.forEach(s => {
-    const b = document.createElement("button");
-    b.className = "chip";
-    b.innerHTML = s.title + (s.badge ? `<span class="wf">${s.badge}</span>` : "");
-    b.addEventListener("click", () => run(s));
-    chiplist.appendChild(b);
+  T.scenarios.forEach((sc, i) => {
+    const b = document.createElement("button"); b.className = "chip";
+    b.innerHTML = sc.title + (sc.badge ? `<span class="wf">${sc.badge}</span>` : "");
+    b.addEventListener("click", () => run(sc));
+    $("#chiplist").appendChild(b);
   });
-
-  window.__runScenario = i => run(window.SCENARIOS[i]);  // scripting hook
+  window.__run = i => run(T.scenarios[i]);  // scripting hook
 })();
