@@ -1,0 +1,75 @@
+# Petstore task suite — initial set across three difficulty tiers.
+# Oracles assert on final sandbox state. Each task runs on a freshly reset sandbox.
+# Phase 4 expands this toward ~40 tasks; this is the verified seed.
+
+# ── single: one tool call ──────────────────────────────────────────────────────
+- id: register_owner_alice
+  difficulty: single
+  instruction: "Register a new owner named Alice with the email alice@example.com."
+  oracle:
+    - collection: owners
+      where: {name: Alice, email: alice@example.com}
+
+- id: add_dog_rex
+  difficulty: single
+  instruction: "Add a new dog named Rex to the pet store."
+  oracle:
+    - collection: pets
+      where: {name: Rex, species: dog}
+
+# ── multi: several calls on the same entity ────────────────────────────────────
+- id: add_and_sell_cat
+  difficulty: multi
+  instruction: "Add a cat named Whiskers to the store, then mark it as sold."
+  oracle:
+    - collection: pets
+      where: {name: Whiskers, species: cat, status: sold}
+
+- id: add_two_dogs
+  difficulty: multi
+  instruction: "Add two dogs to the store: one named Bolt and one named Rex."
+  oracle:
+    - collection: pets
+      where: {name: Bolt, species: dog}
+    - collection: pets
+      where: {name: Rex, species: dog}
+
+- id: register_then_phone_bob
+  difficulty: multi
+  instruction: "Register an owner named Bob (bob@example.com), then set Bob's phone number to 555-1234."
+  oracle:
+    - collection: owners
+      where: {name: Bob, email: bob@example.com, phone: 555-1234}
+
+- id: add_then_remove_temp
+  difficulty: multi
+  instruction: "Add a dog named Temp to the store, then delete it so no pets remain."
+  oracle:
+    - collection: pets
+      where: {}
+      count: 0
+
+# ── workflow: cross-entity id-chaining (the hard case) ──────────────────────────
+- id: owner_with_pet_carol
+  difficulty: workflow
+  instruction: "Register an owner named Carol (carol@example.com) and add a dog named Max that belongs to Carol."
+  oracle:
+    - collection: owners
+      where: {name: Carol}
+    - collection: pets
+      where: {name: Max, species: dog}
+      where_ref:
+        owner_id: {collection: owners, match: {name: Carol}, field: id}
+
+- id: two_owners_one_pet
+  difficulty: workflow
+  instruction: "Register owners Dave (dave@example.com) and Erin (erin@example.com). Then add a cat named Felix owned by Erin."
+  oracle:
+    - collection: owners
+      where: {name: Dave}
+    - collection: owners
+      where: {name: Erin}
+    - collection: pets
+      where: {name: Felix, species: cat}
+      where_ref:
+        owner_id: {collection: owners, match: {name: Erin}, field: id}

@@ -1,0 +1,53 @@
+[project]
+name = "synapse-evaluation"
+version = "0.1.0"
+description = "Standalone evaluation harness, mock sandbox, and tool-set-design benchmark for SYNAPSE. Imports nothing from backend/."
+requires-python = ">=3.11"
+dependencies = [
+    # Driving SYNAPSE + the real generated artifact
+    "httpx>=0.27",
+    "mcp>=1.2",            # MCP client: tools/list + tools/call against the generated server
+    "fastmcp>=2.0,<3",     # runtime for the generated server.py; the template targets the
+                           # lenient FastMCP 2.x return handling (3.x rejects non-dict tool returns)
+    "jinja2>=3.1",         # render the real server template for the keyless de-risk
+    # Agent + judge
+    "openai>=1.35",
+    "anthropic>=0.28",
+    # Spec-driven mock sandbox
+    "fastapi>=0.111",
+    "uvicorn>=0.30",
+    "pyyaml>=6.0",
+    "faker>=25.0",
+    # Metrics / stats / reporting
+    "numpy>=1.26",
+    "scipy>=1.11",
+    "pandas>=2.2",
+    "matplotlib>=3.8",
+    "pyarrow>=16.0",
+    "duckdb>=1.0",
+    # Models
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-asyncio>=0.23",
+    "hypothesis>=6.100",   # property-based generated-server verification (Phase 5)
+    "ruff>=0.5",
+]
+
+[project.scripts]
+synapse-eval = "evalkit.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["evalkit*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
