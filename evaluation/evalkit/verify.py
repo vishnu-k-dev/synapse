@@ -141,7 +141,10 @@ async def verify(tool_specs: list[ToolSpec], mcp: McpToolClient, sandbox: Any,
                                        "no id returned" if not ok else "created"))
 
     def pick_id(t: ToolSpec) -> str | None:
-        pool = ids_by_noun.get(noun_of(t.name)) or [v for vs in ids_by_noun.values() for v in vs]
+        # Only target an entity of the *matching* collection. If none was created (e.g. a
+        # read-only entity like vets), return None -> the check is marked indeterminate
+        # rather than failed on a wrong-collection id (which would be a false negative).
+        pool = ids_by_noun.get(noun_of(t.name))
         return pool[0] if pool else None
 
     # Pass 2 — list / read / update (non-destructive).
@@ -180,7 +183,10 @@ async def _call_ok(mcp: McpToolClient, t: ToolSpec, args: dict[str, Any],
     except Exception as exc:  # McpToolError (e.g. F-1 list crash), transport, etc.
         return False, f"{type(exc).__name__}: {str(exc)[:120]}"
     if expect_list:
-        return (isinstance(res, list), "expected list" if not isinstance(res, list) else "ok")
+        # An empty list comes back as "" (FastMCP emits no text content for []), which is a
+        # valid empty result. A list tool that genuinely breaks raises above (the F-1 guard).
+        ok = isinstance(res, list) or res in ("", None)
+        return ok, ("ok" if ok else f"expected list, got {type(res).__name__}")
     if isinstance(res, dict) and "id" in res:
         return True, f"id={res['id']}"
     return True, "ok"
