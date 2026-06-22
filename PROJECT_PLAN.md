@@ -6,7 +6,9 @@ This is the **single source of truth** for the whole project: the SYNAPSE engine
 harness, the verification layer, and the frontend. It consolidates everything now in place and
 lays out what remains. For the deep dive on the evaluation effort specifically, see
 [`IMPLEMENTATION_PLAN.md`](IMPLEMENTATION_PLAN.md) (eval-harness focus) and
-[`evaluation/FINDINGS.md`](evaluation/FINDINGS.md).
+[`evaluation/FINDINGS.md`](evaluation/FINDINGS.md). For competitive positioning (vs Composio) and
+the novel research bets that differentiate SYNAPSE, see
+[`RESEARCH_DIRECTIONS.md`](RESEARCH_DIRECTIONS.md).
 
 > **FYP @ BNM Institute of Technology, Bengaluru — AI & ML.** Research target: IEEE TENCON /
 > NeurIPS Tool-Use workshop.
