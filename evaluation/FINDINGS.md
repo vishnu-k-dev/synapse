@@ -86,3 +86,31 @@ except ValueError:
 synthesis-correctness bug the existing tests never could, because they never ran the server.
 
 
+
+---
+
+## F-4 — A full ablation run was corrupted by un-handled rate limits
+
+**Severity:** blocking for any multi-run experiment on a rate-limited account.
+**Surfaced by:** the first full 2×2 ablation (4 conditions × 8 tasks × 3 repeats = 96 runs).
+**Status:** fixed in the harness agent client.
+
+**What.** The agent LLM client (`evalkit/agent/llm.py` `OpenAIChat.complete`) issued a single
+`chat.completions.create` with the SDK default (2) retries and no explicit backoff. Running 96
+GPT-4o task-runs back-to-back exhausted the account's rate limit, and `RateLimitError: 429` then
+propagated out of ~**60% of runs** (15/24 in C1, 13–15 in the others). The corrupted run *looked*
+like a real result — success rates ~38–46%, tool-calls collapsed to ~1.0/task — but it was
+measuring rate-limit luck, not tool-surface quality. **The numbers were discarded.**
+
+**Why it matters (methodology).** A silent rate-limit failure is indistinguishable from a genuine
+"the agent gave up after one call" failure unless you inspect the per-run `error` field. Any
+ablation on a low-tier key would have published noise. This is a measurement-validity finding, not
+just an ops bug.
+
+**Fix.** `evalkit/agent/llm.py`: raise the SDK's `max_retries` (absorbs short 429/5xx bursts,
+honoring `Retry-After`) and add an explicit backoff loop (20s→80s, 5 attempts) for sustained
+limits, so a low-tier account produces valid — if slower — results.
+
+**Takeaway for the harness.** Treat a run with a non-trivial `error` rate as invalid by
+construction; surface an error-rate guard in the report so a rate-limited run can never be
+mistaken for a result.

@@ -38,22 +38,39 @@ class OpenAIChat:
     def __init__(self, model: str, temperature: float = 0.0, seed: int = 42,
                  max_tokens: int = 1024, api_key: str | None = None) -> None:
         import openai  # imported lazily so the harness loads without the key/SDK
-        self._client = openai.OpenAI(api_key=api_key) if api_key else openai.OpenAI()
+        # max_retries lets the SDK absorb short 429/5xx bursts (honoring Retry-After);
+        # the explicit loop in complete() handles sustained limits over a long run.
+        self._client = (openai.OpenAI(api_key=api_key, max_retries=6) if api_key
+                        else openai.OpenAI(max_retries=6))
         self._model = model
         self._temperature = temperature
         self._seed = seed
         self._max_tokens = max_tokens
 
     def complete(self, messages: list[dict[str, Any]], tools: list[dict[str, Any]]) -> AssistantTurn:
-        resp = self._client.chat.completions.create(
-            model=self._model,
-            messages=messages,
-            tools=tools or None,
-            tool_choice="auto" if tools else None,
-            temperature=self._temperature,
-            seed=self._seed,
-            max_tokens=self._max_tokens,
-        )
+        import time
+
+        import openai
+
+        resp = None
+        for attempt in range(5):
+            try:
+                resp = self._client.chat.completions.create(
+                    model=self._model,
+                    messages=messages,
+                    tools=tools or None,
+                    tool_choice="auto" if tools else None,
+                    temperature=self._temperature,
+                    seed=self._seed,
+                    max_tokens=self._max_tokens,
+                )
+                break
+            except openai.RateLimitError:
+                if attempt == 4:
+                    raise
+                # Sustained rate limit — back off beyond the SDK's own retries so a
+                # low-tier account yields valid results instead of a corrupted run.
+                time.sleep(min(20 * (attempt + 1), 90))
         msg = resp.choices[0].message
         calls = [
             ToolCall(id=tc.id, name=tc.function.name,
