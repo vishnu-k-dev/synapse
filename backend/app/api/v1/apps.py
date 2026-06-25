@@ -20,12 +20,12 @@ from app.tasks.pipeline import dispatch_pipeline
 router = APIRouter(prefix="/apps", tags=["applications"])
 
 
-    @router.post("", response_model=CreateAppResponse, status_code=status.HTTP_201_CREATED)
-    async def create_application(
-        request: CreateAppRequest,
-        api_key: str = Depends(require_api_key),
-        db: AsyncSession = Depends(get_db),
-    ) -> CreateAppResponse:
+@router.post("", response_model=CreateAppResponse, status_code=status.HTTP_201_CREATED)
+async def create_application(
+    request: CreateAppRequest,
+    _: str = Depends(require_api_key),
+    db: AsyncSession = Depends(get_db),
+) -> CreateAppResponse:
     settings = get_settings()
     encryptor = CredentialEncryptor(settings.encryption_key_bytes)
 
